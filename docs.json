@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Napper Industries",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#e57373",
+    "light": "#4dd0e1",
+    "dark": "#9575cd"
   },
   "favicon": "/favicon.svg",
   "navigation": {
