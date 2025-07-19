@@ -1,80 +1,482 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start Guide"
+description: "Get Blink running locally in under 10 minutes with our step-by-step guide covering Docker setup, system initialization, and verification."
+icon: "rocket"
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
+Get your Blink data center monitoring system up and running in under 10 minutes. This guide covers everything from initial setup to viewing real-time 3D visualization.
 
-### Step 1: Set up your local environment
+<Info>
+**Prerequisites**: Ensure you have Docker, Docker Compose, and [Bun](https://bun.sh) installed on your system.
+</Info>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+## Installation Methods
+
+Choose the installation method that best fits your environment:
+
+<Tabs>
+  <Tab title="🐳 Docker Compose (Recommended)">
+    **Best for**: Quick setup, production-like environment, isolated services
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    ```bash
+    # Clone the repository
+    git clone https://github.com/your-org/blink.git
+    cd blink
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+    # Start all services with one command
+    ./scripts/start.sh
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    # Wait for services to initialize (30-60 seconds)
+    ./scripts/status.sh
+    ```
+    
+    <Check>
+    This method starts all infrastructure services (Kafka, InfluxDB, Redis, Grafana) automatically.
+    </Check>
+  </Tab>
+  
+  <Tab title="⚡ Development Mode">
+    **Best for**: Active development, debugging, customization
+    
+    ```bash
+    # Install Bun runtime (if not already installed)
+    curl -fsSL https://bun.sh/install | bash
+    
+    # Start infrastructure services only
+    docker-compose up -d redis kafka zookeeper influxdb grafana kafka-ui
+    
+    # Install dependencies
+    bun install
+    
+    # Start services in development mode
+    bun run dev
+    ```
+    
+    <Tip>
+    Development mode provides hot reloading and detailed logging for easier debugging.
+    </Tip>
+  </Tab>
+  
+  <Tab title="🔧 Manual Setup">
+    **Best for**: Understanding the system, custom configurations
+    
+    ```bash
+    # Start infrastructure
+    docker-compose up -d redis kafka zookeeper influxdb grafana
+    
+    # Start each service individually
+    cd packages/api && bun run dev &
+    cd packages/visualization && bun run dev &
+    cd packages/simulator && bun run dev &
+    
+    # Initialize the data center layout
+    bun run init:layout
+    ```
+    
+    <Warning>
+    Manual setup requires careful timing - ensure infrastructure services are ready before starting application services.
+    </Warning>
+  </Tab>
+</Tabs>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Step-by-Step Setup
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Clone and Prepare">
+    Start by getting the Blink source code and navigating to the project directory.
+    
+    ```bash
+    git clone https://github.com/your-org/blink.git
+    cd blink
+    ```
+    
+    <Check>
+    Verify you're in the correct directory by checking for `docker-compose.yml` and `package.json` files.
+    </Check>
+  </Step>
+  
+  <Step title="Start Infrastructure Services">
+    Launch all required infrastructure services using Docker Compose.
+    
+    ```bash
+    # Start all services in the background
+    ./scripts/start.sh
+    
+    # Alternative: Start with logs visible
+    docker-compose up
+    ```
+    
+    **Services starting:**
+    - 🔴 **Redis** (Port 6379) - Layout caching and session storage
+    - 🟠 **Kafka** (Port 9092) - Message streaming and data pipeline
+    - 🟡 **InfluxDB** (Port 8086) - Time-series sensor data storage
+    - 🟢 **Grafana** (Port 3000) - Analytics dashboards and monitoring
+    - 🔵 **Kafka UI** (Port 8080) - Message queue monitoring interface
+    
+    <Info>
+    Services typically take 30-60 seconds to fully initialize. Monitor progress with `./scripts/status.sh`.
+    </Info>
+  </Step>
+  
+  <Step title="Initialize Data Center Layout">
+    Create the virtual data center with 100 server towers and 200+ sensors.
+    
+    ```bash
+    # Initialize the complete data center layout
+    bun run init:layout
+    ```
+    
+    This command creates:
+    - **100 Server Towers** arranged in a 10x10 grid
+    - **200+ Temperature Sensors** distributed across towers
+    - **Thermal Zones** with realistic cooling patterns
+    - **Layout Cache** stored in Redis for fast access
+    
+    <Check>
+    Layout initialization should complete in under 10 seconds with "Layout initialized successfully" message.
+    </Check>
+  </Step>
+  
+  <Step title="Verify System Health">
+    Run comprehensive system checks to ensure everything is working properly.
+    
+    ```bash
+    # Check all service health
+    ./scripts/status.sh
+    
+    # Run integration tests
+    bun run test:integration
+    
+    # Test the complete data pipeline
+    bun run test:system
+    ```
+    
+    <AccordionGroup>
+      <Accordion title="Expected Health Check Results">
+        ```bash
+        ✅ Redis: Connected and responding
+        ✅ Kafka: All brokers healthy, topics created
+        ✅ InfluxDB: Database connected, bucket accessible  
+        ✅ API Server: Health endpoint responding (http://localhost:3001/health)
+        ✅ WebSocket: Connection established and broadcasting
+        ✅ Simulator: Generating sensor data every 2 seconds
+        ✅ Visualization: 3D interface loaded and updating
+        ```
+      </Accordion>
+      
+      <Accordion title="Troubleshooting Common Issues">
+        **Port Conflicts**
+        ```bash
+        # Check what's using required ports
+        lsof -i :3000,:3001,:3002,:6379,:8086,:9092
+        
+        # Stop conflicting services
+        sudo pkill -f "process-name"
+        ```
+        
+        **Service Startup Delays**
+        ```bash
+        # Wait for Kafka to be ready
+        docker-compose logs kafka
+        
+        # Restart if needed
+        docker-compose restart kafka
+        ```
+        
+        **Data Pipeline Issues**
+        ```bash
+        # Check message flow
+        docker-compose exec kafka kafka-console-consumer \
+          --bootstrap-server localhost:9092 \
+          --topic sensor-readings --from-beginning
+        ```
+      </Accordion>
+    </AccordionGroup>
+  </Step>
+  
+  <Step title="Access Applications">
+    Open the Blink applications in your browser to start monitoring.
+    
+    <CardGroup cols={2}>
+      <Card
+        title="🎯 3D Visualization"
+        icon="cube"
+        href="http://localhost:3002"
+      >
+        **http://localhost:3002**
+        
+        Interactive 3D data center with real-time sensor data
+        - Pan, zoom, and rotate with mouse
+        - Color-coded temperature display
+        - Live sensor updates every 2 seconds
+      </Card>
+      
+      <Card
+        title="🔧 API Server"
+        icon="server"
+        href="http://localhost:3001"
+      >
+        **http://localhost:3001**
+        
+        REST API endpoints and WebSocket server
+        - Health status at `/health`
+        - Layout data at `/api/layout`
+        - Real-time WebSocket on port 3002
+      </Card>
+      
+      <Card
+        title="📊 Grafana Dashboards"
+        icon="chart-line"
+        href="http://localhost:3000"
+      >
+        **http://localhost:3000**
+        
+        Analytics and monitoring dashboards
+        - **Login**: admin / blink123
+        - Pre-configured sensor dashboards
+        - Real-time performance metrics
+      </Card>
+      
+      <Card
+        title="💾 System Monitoring"
+        icon="database"
+        href="http://localhost:8080"
+      >
+        **Multiple interfaces available**
+        
+        - **Kafka UI**: http://localhost:8080
+        - **InfluxDB**: http://localhost:8086
+        - **Health Checks**: Built into API server
+      </Card>
+    </CardGroup>
+    
+    <Tip>
+    Bookmark these URLs for easy access during development and testing.
+    </Tip>
+  </Step>
+</Steps>
 
-### Step 3: Go live
+## Verification & Testing
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+### 🎮 Interactive 3D Visualization
 
-## Next steps
+Once running, test the 3D visualization features:
 
-Now that you have your docs running, explore these key features:
+<Tabs>
+  <Tab title="Basic Controls">
+    - **Pan**: Click and drag to move around
+    - **Zoom**: Mouse wheel to zoom in/out
+    - **Reset**: Click reset button to return to center
+    
+    You should see 100 server towers with color-coded temperatures updating in real-time.
+  </Tab>
+  
+  <Tab title="Advanced Controls">
+    - **3D Rotation**: 
+      - `Shift + Drag`: Rotate around X-axis (pitch)
+      - `Ctrl/Cmd + Shift + Drag`: Rotate around Z-axis (roll)
+    - **View Modes**: Switch between Isometric, Top, Front, Side views
+    - **Sensor Selection**: Click individual sensors to highlight them
+  </Tab>
+  
+  <Tab title="Data Verification">
+    ```javascript
+    // Check WebSocket data in browser console
+    const ws = new WebSocket('ws://localhost:3002');
+    ws.onmessage = (event) => {
+      console.log('Sensor update:', JSON.parse(event.data));
+    };
+    
+    // Should see sensor readings every ~2 seconds
+    ```
+  </Tab>
+</Tabs>
 
-<CardGroup cols={2}>
+### 📈 Data Pipeline Verification
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+Verify the complete data pipeline is working:
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+<CodeGroup>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+```bash Terminal Commands
+# Check sensor data generation
+docker-compose logs simulator
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+# Verify Kafka message flow
+docker-compose exec kafka kafka-console-consumer \
+  --bootstrap-server localhost:9092 \
+  --topic sensor-readings --from-beginning
 
+# Query recent data from InfluxDB
+curl "http://localhost:8086/api/v2/query" \
+  -H "Authorization: Token fedvision-admin-token-2024" \
+  -H "Content-Type: application/vnd.flux" \
+  --data 'from(bucket:"sensors") |> range(start:-1h) |> limit(n:10)'
+```
+
+```javascript WebSocket Test
+// Test real-time data in browser console
+const ws = new WebSocket('ws://localhost:3002');
+
+ws.onopen = () => console.log('Connected to sensor stream');
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(`Sensor ${data.sensorId}: ${data.value}°C`);
+};
+ws.onerror = (error) => console.error('WebSocket error:', error);
+```
+
+```python Python Client
+import websocket
+import json
+
+def on_message(ws, message):
+    data = json.loads(message)
+    print(f"Sensor {data['sensorId']}: {data['value']}°C")
+
+def on_error(ws, error):
+    print(f"Error: {error}")
+
+# Connect to real-time sensor stream
+ws = websocket.WebSocketApp("ws://localhost:3002",
+                          on_message=on_message,
+                          on_error=on_error)
+ws.run_forever()
+```
+
+</CodeGroup>
+
+## Performance Validation
+
+### Expected Performance Metrics
+
+<Info>
+These metrics represent typical performance for a properly configured Blink system on modern hardware.
+</Info>
+
+| Metric | Expected Value | How to Verify |
+|--------|---------------|---------------|
+| **Sensor Update Rate** | 2 seconds | Monitor WebSocket messages |
+| **WebSocket Latency** | < 100ms | Browser network tools |
+| **API Response Time** | < 50ms | `curl -w "%{time_total}" http://localhost:3001/health` |
+| **Memory Usage** | < 2GB total | `docker stats` |
+| **CPU Usage** | < 20% average | `docker stats` |
+| **Data Throughput** | ~100 msgs/sec | Kafka UI monitoring |
+
+### Load Testing
+
+Test system performance under load:
+
+```bash
+# Generate additional sensor load
+export SENSOR_COUNT=500
+bun run init:layout
+
+# Monitor system resources
+watch -n 1 'docker stats --no-stream'
+
+# Test API endpoint performance
+ab -n 1000 -c 10 http://localhost:3001/api/layout
+
+# WebSocket connection load test
+node tests/websocket-load-test.js
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="🏗️ Explore Architecture"
+    icon="cubes-stacked"
+    href="/architecture/overview"
+  >
+    Learn about the microservices architecture and data flow
+  </Card>
+  
+  <Card
+    title="🎮 Visualization Guide"
+    icon="cube"
+    href="/visualization/overview"
+  >
+    Master the 3D visualization controls and features
+  </Card>
+  
+  <Card
+    title="🔧 API Documentation"
+    icon="code"
+    href="/api-reference/introduction"
+  >
+    Integrate with Blink using REST and WebSocket APIs
+  </Card>
 </CardGroup>
 
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="🚨 Services Won't Start" icon="triangle-exclamation">
+    **Common causes and solutions:**
+    
+    ```bash
+    # Check Docker daemon
+    docker ps
+    
+    # Verify port availability
+    lsof -i :3000,:3001,:3002,:6379,:8086,:9092
+    
+    # Clean restart
+    ./scripts/stop.sh
+    docker system prune -f
+    ./scripts/start.sh
+    ```
+    
+    **Port conflicts**: Stop other services using ports 3000-3002, 6379, 8086, 9092
+    
+    **Docker issues**: Restart Docker daemon or increase memory allocation
+  </Accordion>
+  
+  <Accordion title="🔗 No Real-time Data" icon="wifi">
+    **WebSocket connection issues:**
+    
+    ```bash
+    # Check API server logs
+    docker-compose logs api
+    
+    # Verify simulator is running
+    docker-compose logs simulator
+    
+    # Test WebSocket manually
+    websocat ws://localhost:3002
+    ```
+    
+    **Firewall**: Ensure ports 3002 (WebSocket) and 3001 (API) are accessible
+    
+    **Browser cache**: Hard refresh (Ctrl+Shift+R) the visualization page
+  </Accordion>
+  
+  <Accordion title="📊 Grafana Access Issues" icon="chart-line">
+    **Dashboard authentication problems:**
+    
+    ```bash
+    # Reset Grafana admin password
+    docker-compose exec grafana grafana-cli admin reset-admin-password blink123
+    
+    # Check Grafana logs
+    docker-compose logs grafana
+    
+    # Verify InfluxDB connection
+    curl http://localhost:8086/health
+    ```
+    
+    **Default credentials**: admin / blink123
+    
+    **Data source**: Verify InfluxDB connection in Grafana settings
+  </Accordion>
+</AccordionGroup>
+
+---
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+**System ready!** You now have a fully functional Blink installation. Visit the [3D Visualization](http://localhost:3002) to see your data center in action, or explore the [API documentation](/api-reference/introduction) to start building integrations.
 </Note>

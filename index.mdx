@@ -1,97 +1,347 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Blink - Real-time Data Center Monitoring"
+description: "Comprehensive real-time data center monitoring with interactive 3D visualization, streaming analytics, and advanced thermal modeling."
 ---
 
-## Setting up
+<banner>
+🚀 **Live Demo Available**: Experience Blink's 3D visualization with 200+ sensors in real-time. [Launch Demo →](http://localhost:3002)
+</banner>
 
-Get your documentation site up and running in minutes.
+# Welcome to Blink
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+**The next generation of data center monitoring.** Blink combines real-time sensor data, interactive 3D visualization, and advanced analytics to provide comprehensive insights into your data center operations.
 
-## Make it yours
+<CardGroup cols={2}>
+  <Card
+    title="🎯 Interactive 3D Visualization"
+    icon="cube"
+    href="/visualization/overview"
+  >
+    Experience your data center in 3D with real-time temperature monitoring across 200+ sensors.
+  </Card>
+  <Card
+    title="⚡ Real-time Streaming"
+    icon="bolt"
+    href="/architecture/data-pipeline"
+  >
+    High-throughput data pipeline with Kafka, InfluxDB, and WebSocket for sub-second updates.
+  </Card>
+  <Card
+    title="🏗️ Microservices Architecture"
+    icon="cubes-stacked"
+    href="/architecture/overview"
+  >
+    Scalable system built with modern technologies: Bun, TypeScript, React, and Docker.
+  </Card>
+  <Card
+    title="📊 Advanced Analytics"
+    icon="chart-line"
+    href="/data/grafana-dashboards"
+  >
+    Comprehensive monitoring with Grafana dashboards and time-series analytics.
+  </Card>
+</CardGroup>
 
-Design a docs site that looks great and empowers your users.
+## 🚀 Quick Start
+
+Get Blink running locally in under 5 minutes.
+
+<Tabs>
+  <Tab title="Docker Compose">
+    ```bash
+    # Clone the repository
+    git clone https://github.com/your-org/blink.git
+    cd blink
+
+    # Start all services
+    ./scripts/start.sh
+
+    # Initialize data center layout
+    bun run init:layout
+
+    # Verify system health
+    ./scripts/status.sh
+    ```
+  </Tab>
+  
+  <Tab title="Development">
+    ```bash
+    # Install Bun runtime
+    curl -fsSL https://bun.sh/install | bash
+
+    # Start infrastructure
+    docker-compose up -d redis kafka influxdb
+
+    # Start services in development mode
+    bun run dev
+    ```
+  </Tab>
+  
+  <Tab title="Manual Setup">
+    ```bash
+    # Start individual services
+    cd packages/api && bun run dev
+    cd packages/visualization && bun run dev
+    cd packages/simulator && bun run dev
+
+    # Access applications
+    open http://localhost:3002  # 3D Visualization
+    open http://localhost:3001  # API Server
+    open http://localhost:3000  # Grafana
+    ```
+  </Tab>
+</Tabs>
+
+<Check>
+**System Running**: All services should be operational within 60 seconds. Check the [system status](/system-status) page for real-time health monitoring.
+</Check>
+
+## 🏗️ System Architecture
+
+Blink's microservices architecture delivers scalable, real-time monitoring with enterprise-grade reliability.
+
+<Frame>
+  <img
+    src="/images/architecture-diagram.png"
+    alt="Blink System Architecture showing microservices, data flow, and real-time visualization pipeline"
+  />
+</Frame>
+
+### Core Components
+
+<AccordionGroup>
+  <Accordion title="🎮 3D Visualization Engine" icon="cube">
+    **React + D3.js powered interactive visualization**
+    
+    - Real-time temperature mapping across 100 server towers
+    - 3D rotation controls with mouse and keyboard interactions
+    - Thermal zone visualization with physics-based modeling
+    - Semi-transparent tower panels showing internal sensors
+    
+    ```typescript
+    // Real-time sensor updates via WebSocket
+    const [sensorData, setSensorData] = useState<SensorReading[]>([]);
+    
+    useEffect(() => {
+      const ws = new WebSocket('ws://localhost:3002');
+      ws.onmessage = (event) => {
+        const reading: SensorReading = JSON.parse(event.data);
+        setSensorData(prev => updateSensorReading(prev, reading));
+      };
+    }, []);
+    ```
+  </Accordion>
+  
+  <Accordion title="⚡ Real-time Data Pipeline" icon="stream">
+    **Kafka-powered streaming with sub-second latency**
+    
+    - 200+ sensors generating data every 2 seconds
+    - Kafka partitioning for optimal throughput
+    - InfluxDB time-series storage with automatic retention
+    - Redis caching for hot data and layout information
+    
+    Pipeline: `Simulator → Kafka → API → WebSocket → Visualization`
+  </Accordion>
+  
+  <Accordion title="🔧 Microservices Stack" icon="cubes-stacked">
+    **Modern TypeScript microservices with Bun runtime**
+    
+    | Service | Technology | Port | Purpose |
+    |---------|------------|------|---------|
+    | **API Server** | Fastify + TypeScript | 3001 | REST endpoints, WebSocket |
+    | **3D Visualizer** | React + D3.js | 3002 | Interactive 3D interface |
+    | **Simulator** | TypeScript + Physics | - | Realistic sensor data generation |
+    | **Message Queue** | Kafka | 9092 | High-throughput streaming |
+    | **Time Series DB** | InfluxDB | 8086 | Sensor data storage |
+    | **Cache Layer** | Redis | 6379 | Layout and hot data |
+    | **Analytics** | Grafana | 3000 | Dashboards and monitoring |
+  </Accordion>
+  
+  <Accordion title="🧪 Testing & Validation" icon="flask">
+    **Comprehensive testing for production reliability**
+    
+    - Integration tests covering complete data pipeline
+    - System health monitoring with automated alerts
+    - Performance testing under high sensor loads
+    - WebSocket connection reliability tests
+    
+    ```bash
+    # Run comprehensive test suite
+    bun run test:integration
+    
+    # Performance validation
+    bun run test:system
+    
+    # Check system health
+    ./scripts/status.sh
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## 🎯 Key Features
+
+### Real-time Monitoring at Scale
 
 <Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
+  <div>
+    **📊 Live Sensor Data**
+    - 200+ temperature sensors across data center
+    - 2-second update intervals with sub-second latency
+    - Physics-based thermal modeling
+    - Anomaly detection and alerting
+    
+    **🎮 Interactive 3D Controls**
+    - Mouse pan, zoom, and 3D rotation
+    - Multiple view angles (Isometric, Top, Front, Side)
+    - Persistent view state between updates
+    - Sensor highlighting and selection
+  </div>
+  
+  <div>
+    **⚡ High-Performance Pipeline**
+    - Kafka message streaming (100+ msgs/sec)
+    - InfluxDB time-series storage
+    - Redis caching for optimal performance
+    - WebSocket real-time broadcasting
+    
+    **📈 Advanced Analytics**
+    - Grafana dashboards with custom panels
+    - Historical trend analysis
+    - Performance metrics and KPIs
+    - Automated reporting capabilities
+  </div>
 </Columns>
 
-## Create beautiful pages
+### Thermal Modeling & Visualization
 
-Everything you need to create world-class documentation.
+<Info>
+Blink implements physics-based thermal modeling that accounts for airflow patterns, cooling efficiency, and heat propagation throughout the data center environment.
+</Info>
 
-<Columns cols={2}>
+```typescript
+// Advanced thermal calculation example
+export class ThermalModel {
+  static calculateHeatPropagation(
+    source: Position3D,
+    target: Position3D,
+    sourceTemp: number,
+    ambientTemp: number,
+    airflowVector: Vector3D
+  ): number {
+    const distance = this.calculateDistance(source, target);
+    const airflowAlignment = this.dotProduct(
+      this.normalize(this.subtract(target, source)),
+      airflowVector
+    );
+    
+    // Heat dissipates with distance, enhanced by airflow
+    const dissipation = Math.exp(-distance / 5);
+    const airflowFactor = 1 + airflowAlignment * 0.3;
+    
+    return ambientTemp + (sourceTemp - ambientTemp) * dissipation * airflowFactor;
+  }
+}
+```
+
+## 🔗 Quick Access
+
+<CardGroup cols={3}>
   <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
+    title="Live Demo"
+    icon="play"
+    href="http://localhost:3002"
+    color="#00D9FF"
   >
-    Use MDX to style your docs pages.
+    Experience the 3D visualization with real sensor data
   </Card>
   <Card
-    title="Code samples"
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api-reference/introduction"
+    color="#4FC3F7"
   >
-    Add sample code to demonstrate how to use your product.
+    Complete REST and WebSocket API documentation
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Grafana Dashboards"
+    icon="chart-line"
+    href="http://localhost:3000"
+    color="#FF6B35"
   >
-    Display images and other media.
+    Analytics and monitoring (admin/blink123)
+  </Card>
+</CardGroup>
+
+## 🎖️ Production Ready
+
+<Steps>
+  <Step title="High Availability Setup">
+    Deploy with Kubernetes for automatic scaling and failover. Our Helm charts include Redis cluster, Kafka cluster, and InfluxDB HA configuration.
+    
+    <Tip>
+    Use the provided production configuration with load balancers and health checks for 99.9% uptime.
+    </Tip>
+  </Step>
+  
+  <Step title="Monitoring & Alerting">
+    Comprehensive monitoring with Grafana dashboards, Prometheus metrics, and automated alerting for system anomalies.
+    
+    ```yaml
+    # Alert rule example
+    - alert: HighSensorTemperature
+      expr: sensor_temperature > 85
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Critical temperature detected in {{ $labels.zone }}"
+    ```
+  </Step>
+  
+  <Step title="Security & Compliance">
+    Enterprise security with authentication, role-based access control, and audit logging for compliance requirements.
+    
+    <Warning>
+    Configure SSL/TLS certificates and enable authentication before deploying to production environments.
+    </Warning>
+  </Step>
+</Steps>
+
+## 🤝 Getting Help
+
+<CardGroup cols={2}>
+  <Card
+    title="📚 Documentation"
+    icon="book"
+    href="/architecture/overview"
+  >
+    Comprehensive guides for setup, operations, and development
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="🐛 Issues & Support"
+    icon="bug"
+    href="https://github.com/your-org/blink/issues"
   >
-    Write once and reuse across your docs.
+    Report bugs or request features on GitHub
   </Card>
-</Columns>
+  <Card
+    title="💬 Community"
+    icon="discord"
+    href="https://discord.gg/blink"
+  >
+    Join our Discord for discussions and support
+  </Card>
+  <Card
+    title="📊 System Status"
+    icon="circle-check"
+    href="/system-status"
+  >
+    Real-time system health and performance metrics
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+---
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+**Ready to explore?** Start with the [Quick Start guide](/quickstart) or dive into the [3D Visualization](/visualization/overview) to see Blink in action.
+</Note>

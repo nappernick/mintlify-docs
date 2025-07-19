@@ -1,0 +1,418 @@
+---
+title: "Time-Series Storage"
+description: "InfluxDB-based time-series database for efficient storage, querying, and analysis of historical sensor data."
+icon: "database"
+---
+
+# Time-Series Storage
+
+Blink uses **InfluxDB** as its primary time-series database to efficiently store, query, and analyze millions of sensor readings with optimized compression and fast aggregation capabilities.
+
+## Storage Architecture
+
+<CardGroup cols={2}>
+  <Card title="📊 InfluxDB Database" icon="database">
+    **High-performance time-series storage**
+    - 365K+ data points per hour
+    - Automatic data compression
+    - Optimized for temporal queries
+    - Built-in aggregation functions
+  </Card>
+  
+  <Card title="🗂️ Data Organization" icon="folder-tree">
+    **Structured data hierarchy**
+    - Measurements by sensor type
+    - Tags for metadata indexing
+    - Fields for numeric values
+    - Retention policies
+  </Card>
+  
+  <Card title="⚡ Query Performance" icon="bolt">
+    **Fast data retrieval**
+    - Time-based indexing
+    - Continuous queries
+    - Materialized views
+    - Downsampling strategies
+  </Card>
+  
+  <Card title="📈 Analytics Ready" icon="chart-line">
+    **Built for analysis**
+    - Statistical functions
+    - Window operations
+    - Trend calculations
+    - Export capabilities
+  </Card>
+</CardGroup>
+
+## Database Schema
+
+### Measurement Structure
+
+```sql
+-- Primary measurement for sensor readings
+CREATE MEASUREMENT sensor_readings (
+  time TIMESTAMP,                    -- Primary timestamp index
+  temperature FLOAT,                 -- Temperature value in Celsius
+  
+  -- Tags (indexed)
+  sensor_id TAG,                     -- Unique sensor identifier
+  zone_id TAG,                       -- Data center zone
+  aisle_type TAG,                    -- 'hot' or 'cold' aisle
+  equipment_type TAG,                -- Associated equipment type
+  status TAG,                        -- 'normal', 'warning', 'error'
+  
+  -- Additional fields
+  humidity FLOAT,                    -- Optional humidity reading
+  battery_level INTEGER,             -- Sensor battery percentage
+  signal_strength INTEGER            -- Wireless signal strength
+);
+```
+
+### Retention Policies
+
+<Tabs>
+  <Tab title="Raw Data">
+    **High-resolution recent data**
+    
+    ```sql
+    -- 30-day retention for raw data
+    CREATE RETENTION POLICY "raw_data" ON "sensors" 
+    DURATION 30d 
+    REPLICATION 1 
+    DEFAULT;
+    
+    -- Sample raw data query
+    SELECT temperature, sensor_id, zone_id
+    FROM sensor_readings
+    WHERE time >= now() - 24h
+    AND zone_id = 'cold_aisle_1'
+    ORDER BY time DESC;
+    ```
+    
+    **Characteristics**:
+    - **Duration**: 30 days
+    - **Resolution**: 2-second intervals
+    - **Size**: ~2.5GB per month
+    - **Use case**: Real-time monitoring, recent analysis
+  </Tab>
+  
+  <Tab title="Downsampled Data">
+    **Aggregated historical data**
+    
+    ```sql
+    -- 1-year retention for 5-minute averages
+    CREATE RETENTION POLICY "downsampled_5m" ON "sensors" 
+    DURATION 365d 
+    REPLICATION 1;
+    
+    -- 5-year retention for hourly averages  
+    CREATE RETENTION POLICY "downsampled_1h" ON "sensors" 
+    DURATION 1825d 
+    REPLICATION 1;
+    
+    -- Continuous query for 5-minute downsampling
+    CREATE CONTINUOUS QUERY "cq_5min_avg" ON "sensors"
+    BEGIN
+      SELECT mean(temperature) AS avg_temp,
+             max(temperature) AS max_temp,
+             min(temperature) AS min_temp,
+             count(temperature) AS reading_count
+      INTO "sensors"."downsampled_5m"."sensor_stats"
+      FROM "sensors"."raw_data"."sensor_readings"
+      GROUP BY time(5m), sensor_id, zone_id
+    END;
+    ```
+  </Tab>
+  
+  <Tab title="Long-term Archive">
+    **Multi-year historical storage**
+    
+    ```sql
+    -- Long-term storage with daily aggregates
+    CREATE RETENTION POLICY "archive" ON "sensors" 
+    DURATION INF 
+    REPLICATION 1;
+    
+    -- Daily statistics for long-term trends
+    CREATE CONTINUOUS QUERY "cq_daily_stats" ON "sensors"
+    BEGIN
+      SELECT mean(temperature) AS avg_temp,
+             max(temperature) AS max_temp,
+             min(temperature) AS min_temp,
+             stddev(temperature) AS temp_stddev,
+             percentile(temperature, 95) AS temp_p95
+      INTO "sensors"."archive"."daily_stats"
+      FROM "sensors"."downsampled_1h"."sensor_stats"
+      GROUP BY time(1d), sensor_id, zone_id
+    END;
+    ```
+  </Tab>
+</Tabs>
+
+## Query Patterns
+
+### Common Queries
+
+<AccordionGroup>
+  <Accordion title="Current Temperature Status">
+    **Real-time sensor monitoring**
+    
+    ```sql
+    -- Get latest temperature for all sensors
+    SELECT last(temperature) AS current_temp,
+           last(status) AS current_status,
+           sensor_id,
+           zone_id
+    FROM sensor_readings
+    WHERE time >= now() - 10s
+    GROUP BY sensor_id, zone_id;
+    
+    -- Find sensors with critical temperatures
+    SELECT sensor_id, zone_id, temperature, time
+    FROM sensor_readings
+    WHERE time >= now() - 5m
+    AND temperature > 35
+    ORDER BY temperature DESC
+    LIMIT 10;
+    
+    -- Zone-based temperature overview
+    SELECT zone_id,
+           mean(temperature) AS avg_temp,
+           max(temperature) AS max_temp,
+           count(temperature) AS sensor_count
+    FROM sensor_readings
+    WHERE time >= now() - 1h
+    GROUP BY zone_id
+    ORDER BY avg_temp DESC;
+    ```
+  </Accordion>
+  
+  <Accordion title="Historical Analysis">
+    **Trend analysis and reporting**
+    
+    ```sql
+    -- Daily temperature trends for specific zone
+    SELECT time,
+           mean(temperature) AS avg_temp,
+           max(temperature) AS max_temp,
+           min(temperature) AS min_temp
+    FROM sensor_readings
+    WHERE time >= now() - 7d
+    AND zone_id = 'hot_aisle_1'
+    GROUP BY time(1h)
+    ORDER BY time;
+    
+    -- Compare current vs. historical averages
+    SELECT zone_id,
+           mean(temperature) AS current_avg,
+           mean(temperature) - (
+             SELECT mean(temperature)
+             FROM sensor_readings
+             WHERE time >= now() - 30d AND time <= now() - 7d
+             AND zone_id = z.zone_id
+           ) AS temp_change
+    FROM sensor_readings z
+    WHERE time >= now() - 7d
+    GROUP BY zone_id;
+    
+    -- Identify temperature outliers
+    SELECT sensor_id, zone_id, temperature, time
+    FROM sensor_readings
+    WHERE time >= now() - 24h
+    AND (
+      temperature > (
+        SELECT mean(temperature) + 2 * stddev(temperature)
+        FROM sensor_readings
+        WHERE time >= now() - 7d
+      )
+      OR temperature < (
+        SELECT mean(temperature) - 2 * stddev(temperature)
+        FROM sensor_readings
+        WHERE time >= now() - 7d
+      )
+    )
+    ORDER BY time DESC;
+    ```
+  </Accordion>
+  
+  <Accordion title="Performance Analytics">
+    **System optimization queries**
+    
+    ```sql
+    -- Cooling efficiency analysis
+    SELECT time,
+           mean(cold_temp) AS supply_temp,
+           mean(hot_temp) AS return_temp,
+           mean(hot_temp) - mean(cold_temp) AS delta_t
+    FROM (
+      SELECT time,
+             CASE WHEN aisle_type = 'cold' THEN temperature END AS cold_temp,
+             CASE WHEN aisle_type = 'hot' THEN temperature END AS hot_temp
+      FROM sensor_readings
+      WHERE time >= now() - 24h
+    )
+    GROUP BY time(1h)
+    ORDER BY time;
+    
+    -- Sensor performance metrics
+    SELECT sensor_id,
+           count(*) AS total_readings,
+           count(*) * 100.0 / (24 * 3600 / 2) AS uptime_percentage,
+           stddev(temperature) AS temp_stability,
+           max(temperature) - min(temperature) AS temp_range
+    FROM sensor_readings
+    WHERE time >= now() - 24h
+    GROUP BY sensor_id
+    ORDER BY uptime_percentage ASC;
+    
+    -- Zone temperature distribution
+    SELECT zone_id,
+           histogram(temperature, 15, 35, 10) AS temp_distribution
+    FROM sensor_readings
+    WHERE time >= now() - 24h
+    GROUP BY zone_id;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Data Integration
+
+### Export Capabilities
+
+<CodeGroup>
+
+```python Python Integration
+# Python client for InfluxDB data export
+from influxdb_client import InfluxDBClient
+import pandas as pd
+
+class SensorDataExporter:
+    def __init__(self):
+        self.client = InfluxDBClient(
+            url="http://localhost:8086",
+            token="your-token",
+            org="blink"
+        )
+    
+    def export_sensor_data(self, sensor_id: str, hours: int = 24) -> pd.DataFrame:
+        query = f'''
+        from(bucket: "sensors")
+          |> range(start: -{hours}h)
+          |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
+          |> filter(fn: (r) => r["sensor_id"] == "{sensor_id}")
+          |> filter(fn: (r) => r["_field"] == "temperature")
+          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        '''
+        
+        result = self.client.query_api().query_data_frame(query)
+        return result
+    
+    def export_zone_summary(self, zone_id: str, days: int = 7) -> dict:
+        query = f'''
+        from(bucket: "sensors")
+          |> range(start: -{days}d)
+          |> filter(fn: (r) => r["zone_id"] == "{zone_id}")
+          |> filter(fn: (r) => r["_field"] == "temperature")
+          |> aggregateWindow(every: 1h, fn: mean)
+          |> yield(name: "hourly_avg")
+        '''
+        
+        result = self.client.query_api().query(query)
+        return self.process_result(result)
+```
+
+```javascript JavaScript API
+// JavaScript client for real-time data access
+class SensorDataAPI {
+  constructor(baseUrl = 'http://localhost:3001') {
+    this.baseUrl = baseUrl;
+  }
+  
+  async getCurrentReadings(zoneId = null) {
+    const params = zoneId ? `?zone=${zoneId}` : '';
+    const response = await fetch(`${this.baseUrl}/api/sensors/current${params}`);
+    return response.json();
+  }
+  
+  async getHistoricalData(sensorId, startTime, endTime) {
+    const params = new URLSearchParams({
+      sensor_id: sensorId,
+      start: startTime.toISOString(),
+      end: endTime.toISOString()
+    });
+    
+    const response = await fetch(`${this.baseUrl}/api/sensors/history?${params}`);
+    return response.json();
+  }
+  
+  async getZoneStatistics(zoneId, period = '24h') {
+    const response = await fetch(`${this.baseUrl}/api/zones/${zoneId}/stats?period=${period}`);
+    return response.json();
+  }
+}
+```
+
+```sql SQL Exports
+-- Export daily summary for external systems
+SELECT 
+  date_trunc('day', time) AS date,
+  zone_id,
+  round(avg(temperature)::numeric, 2) AS avg_temp,
+  round(max(temperature)::numeric, 2) AS max_temp,
+  round(min(temperature)::numeric, 2) AS min_temp,
+  count(*) AS reading_count
+FROM sensor_readings
+WHERE time >= now() - interval '30 days'
+GROUP BY date_trunc('day', time), zone_id
+ORDER BY date DESC, zone_id;
+
+-- Export sensor health metrics
+SELECT 
+  sensor_id,
+  zone_id,
+  count(*) * 100.0 / (30 * 24 * 30) AS uptime_percent,
+  round(stddev(temperature)::numeric, 3) AS temp_stability,
+  max(battery_level) AS max_battery,
+  min(battery_level) AS min_battery
+FROM sensor_readings
+WHERE time >= now() - interval '30 days'
+GROUP BY sensor_id, zone_id
+ORDER BY uptime_percent ASC;
+```
+
+</CodeGroup>
+
+## Performance Optimization
+
+### Query Optimization
+
+<Info>
+**Database Performance**:
+- **Write Throughput**: 100+ points/second sustained
+- **Query Response**: < 100ms for typical queries
+- **Storage Efficiency**: ~70% compression ratio
+- **Retention**: 30 days raw + 5 years aggregated
+</Info>
+
+```sql
+-- Optimized query examples
+-- Use time range filters first
+EXPLAIN ANALYZE
+SELECT sensor_id, avg(temperature)
+FROM sensor_readings
+WHERE time >= '2024-01-01' AND time <= '2024-01-02'  -- Time filter first
+AND zone_id = 'cold_aisle_1'                          -- Then tag filters
+GROUP BY sensor_id;
+
+-- Use appropriate retention policy
+SELECT avg_temp, max_temp, min_temp
+FROM "sensors"."downsampled_5m"."sensor_stats"        -- Use downsampled data
+WHERE time >= now() - 7d                              -- For longer periods
+GROUP BY time(1h), zone_id;
+```
+
+---
+
+<Note>
+**Next**: Learn about [streaming data processing](/data/streaming) for real-time analytics or explore [Grafana dashboards](/data/grafana-dashboards) for visualization.
+</Note> 

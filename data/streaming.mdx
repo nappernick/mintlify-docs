@@ -1,0 +1,775 @@
+---
+title: "Streaming Data"
+description: "Real-time data processing with Kafka streaming, live analytics, and immediate alerting for critical temperature events."
+icon: "satellite"
+---
+
+# Streaming Data
+
+Blink's **Streaming Data Platform** provides real-time processing of sensor data using Apache Kafka, enabling immediate alerts, live dashboards, and continuous analytics on 200+ sensor streams.
+
+## Streaming Architecture
+
+<CardGroup cols={2}>
+  <Card title="🌊 Kafka Streams" icon="water">
+    **High-throughput message streaming**
+    - 100+ messages per second
+    - Guaranteed delivery
+    - Horizontal scaling
+    - Fault tolerance
+  </Card>
+  
+  <Card title="⚡ Real-time Processing" icon="bolt">
+    **Immediate data analysis**
+    - Stream processing
+    - Window aggregations
+    - Pattern detection
+    - Alert generation
+  </Card>
+  
+  <Card title="📡 Live Broadcasting" icon="satellite">
+    **WebSocket data delivery**
+    - Real-time visualization updates
+    - Filtered subscriptions
+    - Multiple client support
+    - Low-latency streaming
+  </Card>
+  
+  <Card title="🚨 Instant Alerts" icon="bell">
+    **Critical event detection**
+    - Temperature thresholds
+    - Anomaly detection
+    - Multi-channel notifications
+    - Escalation procedures
+  </Card>
+</CardGroup>
+
+## Kafka Topic Architecture
+
+### Topic Configuration
+
+```yaml
+# Kafka topics for sensor data streaming
+topics:
+  sensor-readings:
+    partitions: 8
+    replication-factor: 3
+    retention.ms: 86400000  # 24 hours
+    cleanup.policy: delete
+    
+  system-alerts:
+    partitions: 4
+    replication-factor: 3
+    retention.ms: 604800000  # 7 days
+    cleanup.policy: compact
+    
+  processed-data:
+    partitions: 6
+    replication-factor: 3
+    retention.ms: 3600000  # 1 hour
+    cleanup.policy: delete
+```
+
+### Message Schemas
+
+<Tabs>
+  <Tab title="Sensor Reading Events">
+    **Raw sensor data messages**
+    
+    ```typescript
+    // Sensor reading message schema
+    interface SensorReadingEvent {
+      metadata: {
+        messageId: string;
+        timestamp: number;
+        version: string;
+        source: 'sensor_network';
+      };
+      
+      sensor: {
+        id: string;
+        type: 'temperature';
+        zone: string;
+        position: {
+          x: number;
+          y: number;
+          z: number;
+        };
+      };
+      
+      reading: {
+        value: number;
+        unit: 'celsius';
+        quality: 'good' | 'questionable' | 'bad';
+        timestamp: number;
+      };
+      
+      status: {
+        batteryLevel: number;
+        signalStrength: number;
+        lastCalibration: number;
+      };
+    }
+    
+    // Example message
+    const sensorMessage: SensorReadingEvent = {
+      metadata: {
+        messageId: "msg_123456789",
+        timestamp: 1704067200000,
+        version: "1.0",
+        source: "sensor_network"
+      },
+      sensor: {
+        id: "TEMP_045",
+        type: "temperature",
+        zone: "cold_aisle_2",
+        position: { x: 15.5, y: 8.2, z: 1.5 }
+      },
+      reading: {
+        value: 22.4,
+        unit: "celsius",
+        quality: "good",
+        timestamp: 1704067200000
+      },
+      status: {
+        batteryLevel: 87,
+        signalStrength: -45,
+        lastCalibration: 1703980800000
+      }
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Alert Events">
+    **Critical system alerts**
+    
+    ```typescript
+    // Alert event schema
+    interface AlertEvent {
+      metadata: {
+        alertId: string;
+        timestamp: number;
+        severity: 'info' | 'warning' | 'critical';
+        category: 'temperature' | 'sensor' | 'system';
+      };
+      
+      trigger: {
+        sensorId: string;
+        zone: string;
+        condition: string;
+        currentValue: number;
+        threshold: number;
+      };
+      
+      context: {
+        recentReadings: number[];
+        neighboringSensors: string[];
+        affectedEquipment: string[];
+      };
+      
+      actions: {
+        notifications: string[];
+        automatedResponses: string[];
+        escalationLevel: number;
+      };
+    }
+    
+    // Critical temperature alert
+    const temperatureAlert: AlertEvent = {
+      metadata: {
+        alertId: "alert_temp_critical_001",
+        timestamp: Date.now(),
+        severity: "critical",
+        category: "temperature"
+      },
+      trigger: {
+        sensorId: "TEMP_067",
+        zone: "hot_aisle_3",
+        condition: "temperature_above_threshold",
+        currentValue: 38.2,
+        threshold: 35.0
+      },
+      context: {
+        recentReadings: [36.1, 37.3, 37.8, 38.2],
+        neighboringSensors: ["TEMP_066", "TEMP_068", "TEMP_069"],
+        affectedEquipment: ["SVR_RACK_15", "SVR_RACK_16"]
+      },
+      actions: {
+        notifications: ["email", "sms", "slack"],
+        automatedResponses: ["increase_cooling", "reduce_server_load"],
+        escalationLevel: 2
+      }
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Processed Analytics">
+    **Aggregated insights and trends**
+    
+    ```typescript
+    // Analytics event schema
+    interface AnalyticsEvent {
+      metadata: {
+        eventId: string;
+        timestamp: number;
+        analysisType: 'aggregation' | 'trend' | 'anomaly';
+        timeWindow: string;
+      };
+      
+      scope: {
+        zones: string[];
+        sensorCount: number;
+        timeRange: {
+          start: number;
+          end: number;
+        };
+      };
+      
+      metrics: {
+        temperature: {
+          mean: number;
+          max: number;
+          min: number;
+          stddev: number;
+          trend: 'rising' | 'falling' | 'stable';
+        };
+        
+        performance: {
+          dataQuality: number;
+          sensorUptime: number;
+          alertCount: number;
+        };
+      };
+      
+      insights: {
+        patterns: string[];
+        recommendations: string[];
+        predictions: {
+          next_hour: number;
+          confidence: number;
+        };
+      };
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Stream Processing
+
+### Real-time Analytics
+
+<AccordionGroup>
+  <Accordion title="Window-based Aggregations">
+    **Time-based data analysis**
+    
+    ```typescript
+    // Stream processing with time windows
+    class SensorStreamProcessor {
+      private kafka: KafkaJS.Kafka;
+      private consumer: KafkaJS.Consumer;
+      private producer: KafkaJS.Producer;
+      
+      constructor() {
+        this.kafka = kafka({
+          clientId: 'sensor-stream-processor',
+          brokers: ['localhost:9092']
+        });
+        
+        this.consumer = this.kafka.consumer({ groupId: 'analytics-group' });
+        this.producer = this.kafka.producer();
+      }
+      
+      async startProcessing(): Promise<void> {
+        await this.consumer.subscribe({ topic: 'sensor-readings' });
+        
+        await this.consumer.run({
+          eachMessage: async ({ topic, partition, message }) => {
+            const sensorReading = JSON.parse(message.value.toString());
+            
+            // Process through various analytics
+            await Promise.all([
+              this.processRealTimeAggregation(sensorReading),
+              this.detectAnomalies(sensorReading),
+              this.updateLiveMetrics(sensorReading),
+              this.checkAlertConditions(sensorReading)
+            ]);
+          }
+        });
+      }
+      
+      private async processRealTimeAggregation(reading: SensorReadingEvent): Promise<void> {
+        // 5-minute sliding window aggregation
+        const windowKey = `${reading.sensor.zone}_${Math.floor(reading.reading.timestamp / 300000)}`;
+        
+        const aggregation = await this.getOrCreateWindow(windowKey);
+        aggregation.addReading(reading);
+        
+        if (aggregation.isComplete()) {
+          const analytics: AnalyticsEvent = {
+            metadata: {
+              eventId: `analytics_${windowKey}`,
+              timestamp: Date.now(),
+              analysisType: 'aggregation',
+              timeWindow: '5m'
+            },
+            scope: {
+              zones: [reading.sensor.zone],
+              sensorCount: aggregation.getSensorCount(),
+              timeRange: aggregation.getTimeRange()
+            },
+            metrics: aggregation.calculateMetrics(),
+            insights: await this.generateInsights(aggregation)
+          };
+          
+          await this.publishAnalytics(analytics);
+        }
+      }
+      
+      private async detectAnomalies(reading: SensorReadingEvent): Promise<void> {
+        const historical = await this.getHistoricalData(reading.sensor.id, '24h');
+        const anomalyScore = this.calculateAnomalyScore(reading, historical);
+        
+        if (anomalyScore > 0.8) {
+          const alert: AlertEvent = {
+            metadata: {
+              alertId: `anomaly_${reading.sensor.id}_${Date.now()}`,
+              timestamp: Date.now(),
+              severity: anomalyScore > 0.95 ? 'critical' : 'warning',
+              category: 'temperature'
+            },
+            trigger: {
+              sensorId: reading.sensor.id,
+              zone: reading.sensor.zone,
+              condition: 'anomaly_detected',
+              currentValue: reading.reading.value,
+              threshold: this.calculateDynamicThreshold(historical)
+            },
+            context: await this.gatherAnomalyContext(reading),
+            actions: this.determineAnomalyActions(anomalyScore)
+          };
+          
+          await this.publishAlert(alert);
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Pattern Recognition">
+    **Automated pattern detection**
+    
+    ```typescript
+    // Pattern detection in sensor streams
+    class PatternDetectionEngine {
+      private patterns = new Map<string, PatternMatcher>();
+      
+      constructor() {
+        this.initializePatterns();
+      }
+      
+      private initializePatterns(): void {
+        // Temperature oscillation pattern
+        this.patterns.set('temperature_oscillation', new TemperatureOscillationMatcher({
+          minAmplitude: 2.0,  // °C
+          maxPeriod: 3600,    // 1 hour
+          minCycles: 3
+        }));
+        
+        // Gradual temperature rise pattern
+        this.patterns.set('gradual_rise', new GradualRiseMatcher({
+          minRate: 0.5,       // °C per hour
+          minDuration: 7200,  // 2 hours
+          maxNoise: 0.3       // °C noise tolerance
+        }));
+        
+        // Sensor correlation pattern
+        this.patterns.set('sensor_correlation', new CorrelationMatcher({
+          minCorrelation: 0.8,
+          windowSize: 1800,   // 30 minutes
+          neighborRadius: 5   // meters
+        }));
+      }
+      
+      async analyzeStream(readings: SensorReadingEvent[]): Promise<PatternDetectionResult[]> {
+        const results: PatternDetectionResult[] = [];
+        
+        for (const [name, matcher] of this.patterns) {
+          const matches = await matcher.findPatterns(readings);
+          
+          matches.forEach(match => {
+            results.push({
+              patternType: name,
+              confidence: match.confidence,
+              timeRange: match.timeRange,
+              affectedSensors: match.sensorIds,
+              significance: this.calculateSignificance(match),
+              recommendedActions: this.getRecommendations(name, match)
+            });
+          });
+        }
+        
+        return results;
+      }
+      
+      private calculateSignificance(match: PatternMatch): 'low' | 'medium' | 'high' {
+        const factors = {
+          confidence: match.confidence,
+          duration: match.timeRange.end - match.timeRange.start,
+          sensorCount: match.sensorIds.length,
+          criticalZones: match.sensorIds.filter(id => this.isCriticalZone(id)).length
+        };
+        
+        const score = (
+          factors.confidence * 0.4 +
+          Math.min(factors.duration / 7200, 1) * 0.3 +
+          Math.min(factors.sensorCount / 10, 1) * 0.2 +
+          Math.min(factors.criticalZones / 5, 1) * 0.1
+        );
+        
+        if (score > 0.8) return 'high';
+        if (score > 0.5) return 'medium';
+        return 'low';
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Real-time Alerting">
+    **Immediate notification system**
+    
+    ```typescript
+    // Real-time alerting engine
+    class RealTimeAlertEngine {
+      private thresholds = new Map<string, AlertThreshold>();
+      private cooldownPeriods = new Map<string, number>();
+      private notificationChannels: NotificationChannel[] = [];
+      
+      constructor() {
+        this.setupDefaultThresholds();
+        this.setupNotificationChannels();
+      }
+      
+      private setupDefaultThresholds(): void {
+        // Zone-specific temperature thresholds
+        this.thresholds.set('cold_aisle', {
+          warning: { min: 16, max: 20 },
+          critical: { min: 14, max: 22 }
+        });
+        
+        this.thresholds.set('hot_aisle', {
+          warning: { min: 25, max: 32 },
+          critical: { min: 20, max: 35 }
+        });
+        
+        this.thresholds.set('equipment_zone', {
+          warning: { min: 18, max: 28 },
+          critical: { min: 15, max: 30 }
+        });
+      }
+      
+      async processReading(reading: SensorReadingEvent): Promise<void> {
+        const zone = this.determineZoneType(reading.sensor.zone);
+        const threshold = this.thresholds.get(zone);
+        
+        if (!threshold) return;
+        
+        const alertLevel = this.evaluateThreshold(reading.reading.value, threshold);
+        
+        if (alertLevel && !this.isInCooldown(reading.sensor.id, alertLevel)) {
+          const alert = await this.createAlert(reading, alertLevel, threshold);
+          await this.dispatchAlert(alert);
+          this.setCooldown(reading.sensor.id, alertLevel);
+        }
+      }
+      
+      private async createAlert(
+        reading: SensorReadingEvent,
+        level: 'warning' | 'critical',
+        threshold: AlertThreshold
+      ): Promise<AlertEvent> {
+        const context = await this.gatherAlertContext(reading);
+        
+        return {
+          metadata: {
+            alertId: `temp_${level}_${reading.sensor.id}_${Date.now()}`,
+            timestamp: Date.now(),
+            severity: level,
+            category: 'temperature'
+          },
+          trigger: {
+            sensorId: reading.sensor.id,
+            zone: reading.sensor.zone,
+            condition: `temperature_${level}_threshold`,
+            currentValue: reading.reading.value,
+            threshold: reading.reading.value > threshold[level].max 
+              ? threshold[level].max 
+              : threshold[level].min
+          },
+          context,
+          actions: this.determineActions(level, reading.sensor.zone)
+        };
+      }
+      
+      private async dispatchAlert(alert: AlertEvent): Promise<void> {
+        const promises = this.notificationChannels.map(async channel => {
+          if (channel.shouldHandle(alert)) {
+            await channel.send(alert);
+          }
+        });
+        
+        await Promise.all(promises);
+        
+        // Store alert for historical tracking
+        await this.storeAlert(alert);
+        
+        // Publish to alert topic for other consumers
+        await this.publishToKafka('system-alerts', alert);
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## WebSocket Broadcasting
+
+### Live Data Streaming
+
+<CodeGroup>
+
+```typescript WebSocket Server
+// WebSocket server for real-time data broadcasting
+class SensorWebSocketServer {
+  private wss: WebSocket.Server;
+  private clients = new Map<string, ClientConnection>();
+  private kafka: KafkaJS.Consumer;
+  
+  constructor(port: number = 3002) {
+    this.wss = new WebSocket.Server({ port });
+    this.setupWebSocketHandlers();
+    this.setupKafkaConsumer();
+  }
+  
+  private setupWebSocketHandlers(): void {
+    this.wss.on('connection', (ws: WebSocket, req) => {
+      const clientId = this.generateClientId();
+      const client: ClientConnection = {
+        id: clientId,
+        socket: ws,
+        subscriptions: new Set(),
+        filters: {},
+        lastHeartbeat: Date.now()
+      };
+      
+      this.clients.set(clientId, client);
+      
+      ws.on('message', (data) => {
+        this.handleClientMessage(clientId, JSON.parse(data.toString()));
+      });
+      
+      ws.on('close', () => {
+        this.clients.delete(clientId);
+      });
+      
+      // Send initial connection acknowledgment
+      this.sendToClient(clientId, {
+        type: 'connection_ack',
+        clientId,
+        timestamp: Date.now()
+      });
+    });
+  }
+  
+  private async setupKafkaConsumer(): Promise<void> {
+    this.kafka = kafka().consumer({ groupId: 'websocket-broadcaster' });
+    
+    await this.kafka.subscribe({ 
+      topics: ['sensor-readings', 'system-alerts', 'processed-data'] 
+    });
+    
+    await this.kafka.run({
+      eachMessage: async ({ topic, message }) => {
+        const data = JSON.parse(message.value.toString());
+        await this.broadcastToSubscribers(topic, data);
+      }
+    });
+  }
+  
+  private async broadcastToSubscribers(topic: string, data: any): Promise<void> {
+    const message = {
+      type: 'data_update',
+      topic,
+      data,
+      timestamp: Date.now()
+    };
+    
+    this.clients.forEach((client, clientId) => {
+      if (this.shouldReceiveMessage(client, topic, data)) {
+        this.sendToClient(clientId, message);
+      }
+    });
+  }
+  
+  private shouldReceiveMessage(client: ClientConnection, topic: string, data: any): boolean {
+    // Check subscriptions
+    if (!client.subscriptions.has(topic)) return false;
+    
+    // Apply filters
+    if (client.filters.zones && client.filters.zones.length > 0) {
+      if (!client.filters.zones.includes(data.sensor?.zone || data.scope?.zones?.[0])) {
+        return false;
+      }
+    }
+    
+    if (client.filters.sensorIds && client.filters.sensorIds.length > 0) {
+      if (!client.filters.sensorIds.includes(data.sensor?.id)) {
+        return false;
+      }
+    }
+    
+    if (client.filters.severity && data.metadata?.severity) {
+      const severityLevels = ['info', 'warning', 'critical'];
+      const clientMinLevel = severityLevels.indexOf(client.filters.severity);
+      const messageLevel = severityLevels.indexOf(data.metadata.severity);
+      
+      if (messageLevel < clientMinLevel) return false;
+    }
+    
+    return true;
+  }
+}
+```
+
+```typescript Client Subscription
+// Client-side subscription management
+class SensorDataClient {
+  private ws: WebSocket;
+  private subscriptions = new Set<string>();
+  private eventHandlers = new Map<string, Function[]>();
+  
+  constructor(url: string = 'ws://localhost:3002') {
+    this.connect(url);
+  }
+  
+  private connect(url: string): void {
+    this.ws = new WebSocket(url);
+    
+    this.ws.onopen = () => {
+      console.log('Connected to sensor data stream');
+      this.sendHeartbeat();
+    };
+    
+    this.ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      this.handleMessage(message);
+    };
+    
+    this.ws.onclose = () => {
+      console.log('Disconnected from sensor data stream');
+      setTimeout(() => this.connect(url), 5000); // Reconnect after 5s
+    };
+  }
+  
+  // Subscribe to real-time sensor readings
+  subscribeToSensorReadings(filters?: {
+    zones?: string[];
+    sensorIds?: string[];
+    temperatureRange?: { min: number; max: number };
+  }): void {
+    this.send({
+      type: 'subscribe',
+      topic: 'sensor-readings',
+      filters
+    });
+    
+    this.subscriptions.add('sensor-readings');
+  }
+  
+  // Subscribe to system alerts
+  subscribeToAlerts(minSeverity: 'info' | 'warning' | 'critical' = 'warning'): void {
+    this.send({
+      type: 'subscribe',
+      topic: 'system-alerts',
+      filters: { severity: minSeverity }
+    });
+    
+    this.subscriptions.add('system-alerts');
+  }
+  
+  // Event handler registration
+  on(event: 'sensor_reading' | 'alert' | 'analytics', handler: Function): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, []);
+    }
+    this.eventHandlers.get(event).push(handler);
+  }
+  
+  private handleMessage(message: any): void {
+    switch (message.type) {
+      case 'data_update':
+        if (message.topic === 'sensor-readings') {
+          this.emit('sensor_reading', message.data);
+        } else if (message.topic === 'system-alerts') {
+          this.emit('alert', message.data);
+        } else if (message.topic === 'processed-data') {
+          this.emit('analytics', message.data);
+        }
+        break;
+      
+      case 'connection_ack':
+        console.log(`Connected with client ID: ${message.clientId}`);
+        break;
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## Performance Monitoring
+
+### Stream Metrics
+
+<Info>
+**Real-time Performance**:
+- **Message Throughput**: 100+ messages/second
+- **Processing Latency**: < 50ms end-to-end
+- **WebSocket Connections**: 200+ concurrent clients
+- **Alert Response Time**: < 100ms critical alerts
+</Info>
+
+```typescript
+// Stream performance monitoring
+class StreamMetrics {
+  private metrics = {
+    messagesProcessed: 0,
+    averageLatency: 0,
+    errorRate: 0,
+    throughput: 0
+  };
+  
+  updateMetrics(startTime: number, success: boolean): void {
+    const latency = Date.now() - startTime;
+    
+    this.metrics.messagesProcessed++;
+    this.metrics.averageLatency = (
+      this.metrics.averageLatency * 0.9 + latency * 0.1
+    );
+    
+    if (!success) {
+      this.metrics.errorRate = (this.metrics.errorRate * 0.99) + 0.01;
+    } else {
+      this.metrics.errorRate = this.metrics.errorRate * 0.99;
+    }
+    
+    // Calculate throughput (messages per second)
+    const now = Date.now();
+    this.updateThroughput(now);
+  }
+}
+```
+
+---
+
+<Note>
+**Integration**: Connect with [Grafana dashboards](/data/grafana-dashboards) for stream visualization or explore [time-series storage](/data/time-series) for historical analysis.
+</Note> 

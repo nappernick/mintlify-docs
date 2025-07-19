@@ -1,33 +1,594 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Complete REST and WebSocket API documentation for Blink's real-time data center monitoring system."
+icon: "code"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+# Blink API Reference
 
-## Welcome
+The Blink API provides comprehensive access to real-time sensor data, data center layout information, and system controls through both REST endpoints and WebSocket connections.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
+<CardGroup cols={2}>
+  <Card
+    title="🔗 REST API"
+    icon="server"
+    href="#rest-endpoints"
+  >
+    **Base URL**: `http://localhost:3001`
+    
+    Access sensor data, layout configuration, and historical analytics through standard REST endpoints.
+  </Card>
 <Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
+    title="⚡ WebSocket API"
+    icon="bolt"
+    href="#websocket-streams"
+  >
+    **WebSocket URL**: `ws://localhost:3002`
+    
+    Real-time streaming sensor data with sub-second latency for live monitoring applications.
 </Card>
+</CardGroup>
+
+## Quick Start
+
+<Tabs>
+  <Tab title="REST Example">
+    ```bash
+    # Get system health
+    curl http://localhost:3001/health
+    
+    # Fetch data center layout
+    curl http://localhost:3001/api/layout
+    
+    # Get recent sensor readings
+    curl "http://localhost:3001/api/sensors/readings?limit=10"
+    ```
+  </Tab>
+  
+  <Tab title="WebSocket Example">
+    ```javascript
+    // Connect to real-time sensor stream
+    const ws = new WebSocket('ws://localhost:3002');
+    
+    ws.onmessage = (event) => {
+      const sensorData = JSON.parse(event.data);
+      console.log(`Sensor ${sensorData.sensorId}: ${sensorData.value}°C`);
+    };
+    
+    ws.onopen = () => console.log('Connected to sensor stream');
+    ```
+  </Tab>
+  
+  <Tab title="Python Client">
+    ```python
+    import requests
+    import websocket
+    import json
+    
+    # REST API call
+    response = requests.get('http://localhost:3001/api/layout')
+    layout = response.json()
+    
+    # WebSocket connection
+    def on_message(ws, message):
+        data = json.loads(message)
+        print(f"Sensor update: {data}")
+    
+    ws = websocket.WebSocketApp("ws://localhost:3002",
+                              on_message=on_message)
+    ws.run_forever()
+    ```
+  </Tab>
+</Tabs>
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+<Info>
+**Development Mode**: Blink runs without authentication in development mode. Production deployments support JWT tokens and API keys.
+</Info>
+
+For production environments, include authentication headers:
+
+<CodeGroup>
+
+```bash cURL
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     http://localhost:3001/api/sensors
+```
+
+```javascript JavaScript
+const headers = {
+  'Authorization': 'Bearer YOUR_JWT_TOKEN',
+  'Content-Type': 'application/json'
+};
+
+fetch('http://localhost:3001/api/sensors', { headers })
+  .then(response => response.json())
+  .then(data => console.log(data));
+```
+
+```python Python
+import requests
+
+headers = {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get('http://localhost:3001/api/sensors', headers=headers)
+data = response.json()
+```
+
+</CodeGroup>
+
+## REST Endpoints
+
+### Core Resources
+
+<AccordionGroup>
+  <Accordion title="System Health & Status" icon="heart">
+    **GET /health**
+    
+    Check system health and service availability.
+    
+    ```bash
+    curl http://localhost:3001/health
+    ```
+    
+    **Response:**
+    ```json
+    {
+      "status": "healthy",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "services": {
+        "redis": "connected",
+        "kafka": "healthy",
+        "influxdb": "connected",
+        "websocket": "broadcasting"
+      },
+      "metrics": {
+        "activeSensors": 203,
+        "messageRate": 101.5,
+        "averageLatency": "45ms"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Data Center Layout" icon="building">
+    **GET /api/layout**
+    
+    Retrieve complete data center layout including towers, zones, and sensor positions.
+    
+    ```bash
+    curl http://localhost:3001/api/layout
+    ```
+    
+    **Response Schema:**
+    ```typescript
+    interface LayoutResponse {
+      zones: Zone[];
+      towers: Tower[];
+      sensors: Sensor[];
+      metadata: {
+        gridSize: { width: number; height: number };
+        totalSensors: number;
+        lastUpdated: string;
+      };
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Sensor Data" icon="thermometer">
+    **GET /api/sensors**
+    
+    List all sensors with current status and recent readings.
+    
+    **Query Parameters:**
+    - `zone` - Filter by zone ID
+    - `tower` - Filter by tower ID  
+    - `status` - Filter by sensor status
+    - `limit` - Maximum results (default: 100)
+    
+    ```bash
+    curl "http://localhost:3001/api/sensors?zone=cold-aisle-1&limit=50"
+    ```
+  </Accordion>
+  
+  <Accordion title="Historical Data" icon="chart-line">
+    **GET /api/sensors/{sensorId}/history**
+    
+    Retrieve historical sensor readings for analysis and trending.
+    
+    **Path Parameters:**
+    - `sensorId` - Unique sensor identifier
+    
+    **Query Parameters:**
+    - `start` - Start timestamp (ISO 8601)
+    - `end` - End timestamp (ISO 8601)
+    - `interval` - Data aggregation interval
+    - `limit` - Maximum data points
+    
+    ```bash
+    curl "http://localhost:3001/api/sensors/sensor_001/history?start=2024-01-15T00:00:00Z&interval=5m"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Response Format
+
+All API responses follow a consistent format:
+
+```typescript
+interface APIResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  metadata: {
+    timestamp: string;
+    requestId: string;
+    processingTime: string;
+  };
+}
+```
+
+### Error Handling
+
+<Tabs>
+  <Tab title="Error Codes">
+    | Code | Status | Description |
+    |------|--------|-------------|
+    | `200` | Success | Request completed successfully |
+    | `400` | Bad Request | Invalid request parameters |
+    | `401` | Unauthorized | Authentication required |
+    | `404` | Not Found | Resource not found |
+    | `429` | Rate Limited | Too many requests |
+    | `500` | Server Error | Internal server error |
+    | `503` | Service Unavailable | System temporarily unavailable |
+  </Tab>
+  
+  <Tab title="Error Response">
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "SENSOR_NOT_FOUND",
+        "message": "Sensor with ID 'sensor_999' does not exist",
+        "details": {
+          "sensorId": "sensor_999",
+          "availableIds": ["sensor_001", "sensor_002"]
+        }
+      },
+      "metadata": {
+        "timestamp": "2024-01-15T10:30:00Z",
+        "requestId": "req_abc123",
+        "processingTime": "15ms"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Rate Limiting">
+    ```bash
+    # Rate limit headers included in all responses
+    HTTP/1.1 200 OK
+    X-RateLimit-Limit: 1000
+    X-RateLimit-Remaining: 999
+    X-RateLimit-Reset: 1642247400
+    
+    # Rate limit exceeded response
+    HTTP/1.1 429 Too Many Requests
+    {
+      "success": false,
+      "error": {
+        "code": "RATE_LIMIT_EXCEEDED",
+        "message": "Rate limit exceeded. Try again in 60 seconds."
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## WebSocket Streams
+
+### Connection
+
+Connect to the WebSocket server for real-time sensor data:
+
+```javascript
+const ws = new WebSocket('ws://localhost:3002');
+
+ws.onopen = (event) => {
+  console.log('Connected to Blink sensor stream');
+};
+
+ws.onmessage = (event) => {
+  const sensorReading = JSON.parse(event.data);
+  handleSensorUpdate(sensorReading);
+};
+
+ws.onclose = (event) => {
+  console.log('Disconnected:', event.code, event.reason);
+  // Implement reconnection logic
+  setTimeout(() => connect(), 5000);
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+```
+
+### Message Types
+
+<AccordionGroup>
+  <Accordion title="Sensor Reading" icon="thermometer">
+    Real-time temperature sensor data broadcast every 2 seconds.
+    
+    **Message Type:** `sensor_reading`
+    
+    ```json
+    {
+      "type": "sensor_reading",
+      "timestamp": "2024-01-15T10:30:00.123Z",
+      "sensorId": "sensor_001",
+      "towerId": "tower_a1",
+      "zoneId": "cold-aisle-1",
+      "value": 24.5,
+      "unit": "celsius",
+      "status": "ok",
+      "position": { "x": 2.5, "y": 1.0, "z": 0.5 }
+    }
+    ```
+    
+    **Frequency:** Every 2 seconds per sensor (200+ sensors)
+    **Volume:** ~100 messages per second
+  </Accordion>
+  
+  <Accordion title="System Events" icon="bell">
+    System status changes, alerts, and notifications.
+    
+    **Message Type:** `system_event`
+    
+    ```json
+    {
+      "type": "system_event",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "event": "sensor_alarm",
+      "severity": "warning",
+      "sensorId": "sensor_045",
+      "message": "Temperature exceeds threshold",
+      "details": {
+        "currentValue": 85.2,
+        "threshold": 80.0,
+        "duration": "5m"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Connection Status" icon="wifi">
+    Connection health and client management messages.
+    
+    **Message Type:** `connection_status`
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+    {
+      "type": "connection_status",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "status": "connected",
+      "clientId": "client_abc123",
+      "subscribedTopics": ["sensor_readings", "system_events"]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Subscription Management
+
+<Info>
+**Auto-subscription**: Clients are automatically subscribed to all sensor readings upon connection. Use subscription messages to filter data.
+</Info>
+
+```javascript
+// Subscribe to specific sensors
+ws.send(JSON.stringify({
+  type: 'subscribe',
+  topics: ['sensor_readings'],
+  filters: {
+    sensorIds: ['sensor_001', 'sensor_002'],
+    zones: ['cold-aisle-1']
   }
-]
+}));
+
+// Unsubscribe from system events
+ws.send(JSON.stringify({
+  type: 'unsubscribe',
+  topics: ['system_events']
+}));
 ```
+
+## Data Models
+
+### Core Types
+
+<AccordionGroup>
+  <Accordion title="SensorReading" icon="thermometer">
+    ```typescript
+    interface SensorReading {
+      sensorId: string;           // Unique sensor identifier
+      timestamp: number;          // Unix timestamp in milliseconds
+      value: number;              // Temperature value
+      unit: 'celsius';            // Temperature unit
+      status: SensorStatus;       // Operational status
+      metadata: SensorMetadata;   // Additional sensor information
+    }
+    
+    enum SensorStatus {
+      OK = 'ok',
+      FAILED_DEAD = 'failed_dead',
+      FAILED_STUCK = 'failed_stuck', 
+      FAILED_NOISY = 'failed_noisy',
+      FAILED_DRIFT = 'failed_drift'
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="DataCenterLayout" icon="building">
+    ```typescript
+    interface DataCenterLayout {
+      zones: Zone[];
+      towers: Tower[];
+      sensors: Sensor[];
+      metadata: LayoutMetadata;
+    }
+    
+    interface Zone {
+      id: string;
+      name: string;
+      bounds: BoundingBox;
+      coolingType: 'hot-aisle' | 'cold-aisle' | 'contained';
+      ambientTemp: number;
+    }
+    
+    interface Tower {
+      id: string;
+      zoneId: string;
+      position: Position3D;
+      dimensions: Dimensions;
+      rackCount: number;
+      powerLoad: number;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Position3D" icon="cube">
+    ```typescript
+    interface Position3D {
+      x: number;    // X coordinate in meters
+      y: number;    // Y coordinate in meters  
+      z: number;    // Z coordinate (height) in meters
+    }
+    
+    interface BoundingBox {
+      min: Position3D;
+      max: Position3D;
+    }
+    
+    interface Dimensions {
+      width: number;   // Width in meters
+      height: number;  // Height in meters
+      depth: number;   // Depth in meters
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## SDK & Client Libraries
+
+<CardGroup cols={2}>
+  <Card
+    title="JavaScript SDK"
+    icon="js"
+    href="#javascript-sdk"
+  >
+    ```bash
+    npm install @blink/js-sdk
+    ```
+    
+    Full-featured client with WebSocket management, automatic reconnection, and TypeScript support.
+  </Card>
+  
+  <Card
+    title="Python SDK"
+    icon="python"
+    href="#python-sdk"
+  >
+    ```bash
+    pip install blink-datacenter
+    ```
+    
+    Async/await support, pandas integration, and Jupyter notebook compatibility.
+  </Card>
+</CardGroup>
+
+### JavaScript SDK Example
+
+```javascript
+import { BlinkClient } from '@blink/js-sdk';
+
+const client = new BlinkClient({
+  apiUrl: 'http://localhost:3001',
+  wsUrl: 'ws://localhost:3002'
+});
+
+// Connect and subscribe to sensor data
+await client.connect();
+
+client.onSensorReading((reading) => {
+  console.log(`${reading.sensorId}: ${reading.value}°C`);
+});
+
+// Query historical data
+const history = await client.getSensorHistory('sensor_001', {
+  start: new Date('2024-01-15'),
+  interval: '5m'
+});
+```
+
+## Rate Limits & Performance
+
+<Tabs>
+  <Tab title="Rate Limits">
+    | Endpoint | Limit | Window |
+    |----------|-------|--------|
+    | **REST API** | 1,000 requests | 1 hour |
+    | **WebSocket** | 10 connections | Per IP |
+    | **Historical Data** | 100 queries | 1 hour |
+    | **Layout Updates** | 10 requests | 1 hour |
+  </Tab>
+  
+  <Tab title="Performance">
+    | Metric | Value | Notes |
+    |--------|-------|-------|
+    | **REST Latency** | < 50ms | Average response time |
+    | **WebSocket Latency** | < 100ms | Real-time data delivery |
+    | **Data Throughput** | 100+ msgs/sec | Sensor update rate |
+    | **Concurrent Connections** | 100+ | WebSocket clients |
+  </Tab>
+  
+  <Tab title="Optimization">
+    **Best Practices:**
+    
+    - Use WebSocket for real-time data instead of polling REST endpoints
+    - Implement client-side filtering to reduce bandwidth
+    - Cache layout data locally as it changes infrequently
+    - Use compression for large historical data queries
+    - Implement exponential backoff for reconnections
+    
+    ```javascript
+    // Efficient real-time monitoring
+    const ws = new WebSocket('ws://localhost:3002');
+    const sensorCache = new Map();
+    
+    ws.onmessage = (event) => {
+      const reading = JSON.parse(event.data);
+      
+      // Client-side filtering
+      if (reading.zoneId === 'cold-aisle-1') {
+        sensorCache.set(reading.sensorId, reading);
+        updateVisualization(reading);
+      }
+    };
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+<Note>
+**Ready to start building?** Check out our [SDK documentation](/development/javascript-sdk) or explore the [interactive API playground](/api-reference/playground) to test endpoints in real-time.
+</Note>
