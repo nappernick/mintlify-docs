@@ -1,115 +1,81 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Napper Industries Inc.",
+  "name": "Blink",
+  "description": "Real-time data center monitoring system with interactive 3D visualization, streaming data pipeline, and comprehensive analytics.",
   "colors": {
-    "primary": "#e57373",
-    "light": "#4dd0e1",
-    "dark": "#9575cd"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Guides",
-        "groups": [
-          {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API reference",
-        "groups": [
-          {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    "primary": "#00D9FF",
+    "light": "#4FC3F7",
+    "dark": "#0277BD"
   },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "groups": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "index",
+        "quickstart",
+        "installation",
+        "system-status"
+      ]
+    },
+    {
+      "group": "System Architecture",
+      "pages": [
+        "architecture/overview",
+        "architecture/data-pipeline",
+        "architecture/microservices",
+        "architecture/scaling"
+      ]
+    },
+    {
+      "group": "3D Visualization",
+      "pages": [
+        "visualization/overview",
+        "visualization/controls",
+        "visualization/thermal-modeling",
+        "visualization/customization"
+      ]
+    },
+    {
+      "group": "Data & Analytics",
+      "pages": [
+        "data/sensor-system",
+        "data/time-series",
+        "data/streaming",
+        "data/grafana-dashboards"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/introduction",
+        "api-reference/endpoint/get",
+        "api-reference/endpoint/create",
+        "api-reference/endpoint/delete",
+        "api-reference/endpoint/webhook"
+      ]
+    }
+    ]
+  },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@blink-datacenter.com"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/your-org/blink",
+      "discord": "https://discord.gg/blink",
+      "x": "https://x.com/blink_datacenter"
     }
   }
 }

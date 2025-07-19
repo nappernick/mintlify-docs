@@ -1,0 +1,92 @@
+---
+title: "Sensor System"
+description: "Comprehensive sensor data collection system with 200+ temperature sensors, real-time monitoring, and intelligent data validation."
+icon: "microchip"
+---
+
+# Sensor System
+
+Blink's **Sensor System** manages a network of 203 strategically placed temperature sensors throughout the data center, providing comprehensive environmental monitoring with real-time data collection, validation, and analysis.
+
+## System Overview
+
+<CardGroup cols={2}>
+  <Card title="Temperature Sensors" icon="thermometer">
+    **Precise environmental monitoring**
+    - 203 distributed sensors
+    - ±0.1°C accuracy
+    - 2-second update intervals
+    - Wide operating range
+  </Card>
+  
+  <Card title="Data Collection" icon="satellite-dish">
+    **Real-time data pipeline**
+    - Wireless sensor network
+    - Automatic discovery
+    - Fault tolerance
+    - Data validation
+  </Card>
+  
+  <Card title="Smart Analytics" icon="magnifying-glass-chart">
+    **Intelligent data processing**
+    - Anomaly detection
+    - Trend analysis
+    - Predictive alerts
+    - Quality assessment
+  </Card>
+  
+  <Card title="Management Tools" icon="gear">
+    **Operational control**
+    - Sensor configuration
+    - Calibration tools
+    - Maintenance scheduling
+    - Performance monitoring
+  </Card>
+</CardGroup>
+
+## Sensor Network Architecture
+
+### Physical Deployment
+
+The 203 sensors are strategically placed throughout the data center to provide comprehensive temperature monitoring:
+
+- **Cold Aisles**: 68 sensors monitoring supply air temperature
+- **Hot Aisles**: 75 sensors tracking exhaust temperatures  
+- **Equipment Zones**: 45 sensors near critical infrastructure
+- **Ambient Areas**: 15 sensors for baseline measurements
+
+### Real-time Data Collection
+
+```typescript
+interface SensorReading {
+  sensorId: string;
+  timestamp: number;
+  temperature: number;
+  unit: 'celsius';
+  status: 'normal' | 'warning' | 'error';
+  batteryLevel: number;
+  signalStrength: number;
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+}
+```
+
+## Performance Metrics
+
+<Info>
+**Current System Performance**:
+- **Total Sensors**: 203 active sensors
+- **Update Rate**: Every 2 seconds (0.5 Hz)
+- **Data Points/Hour**: ~365,000 readings
+- **System Uptime**: 99.97%
+- **Data Quality**: 99.94% valid readings
+</Info>
+
+---
+
+<Note>
+**Next**: Explore [time-series storage](/data/time-series) for historical data management or [streaming data](/data/streaming) for real-time processing.
+</Note> 

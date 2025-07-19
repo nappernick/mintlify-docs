@@ -1,0 +1,835 @@
+---
+title: "Scaling Strategies"
+description: "Comprehensive guide to scaling Blink for high-volume deployments, performance optimization, and enterprise requirements."
+icon: "chart-line-up"
+---
+
+# Scaling Strategies
+
+Blink is designed to scale from small deployments with 100 sensors to enterprise installations with 100,000+ sensors. This guide covers horizontal scaling, performance optimization, and capacity planning.
+
+## Scaling Overview
+
+<CardGroup cols={2}>
+  <Card title="🔄 Horizontal Scaling" icon="arrows-split-up-and-left">
+    **Add more instances**
+    - Service replication
+    - Load distribution
+    - Auto-scaling policies
+    - Multi-region deployment
+  </Card>
+  
+  <Card title="⬆️ Vertical Scaling" icon="arrow-up">
+    **Increase instance capacity**
+    - CPU and memory upgrades
+    - Storage optimization
+    - Network bandwidth
+    - Performance tuning
+  </Card>
+  
+  <Card title="Data Partitioning" icon="database">
+    **Distribute data load**
+    - Sensor zone partitioning
+    - Time-based sharding
+    - Geographic distribution
+    - Read replica scaling
+  </Card>
+  
+  <Card title="Performance Optimization" icon="gauge-high">
+    **Optimize efficiency**
+    - Caching strategies
+    - Query optimization
+    - Connection pooling
+    - Resource management
+  </Card>
+</CardGroup>
+
+## Current Capacity
+
+### Baseline Performance
+
+<Info>
+**Current Scale**: 203 sensors, 100 msg/sec, 2-second intervals with sub-second latency
+</Info>
+
+| Component | Current Load | Theoretical Max | Bottleneck |
+|-----------|--------------|-----------------|------------|
+| **Sensor Simulator** | 203 sensors | 10,000+ | CPU/Memory |
+| **Kafka** | 100 msg/sec | 1M msg/sec | Network/Disk |
+| **InfluxDB** | 105 writes/sec | 500K writes/sec | Disk I/O |
+| **WebSocket** | 203 connections | 10K connections | Memory/Network |
+| **API Server** | 45 req/min | 10K req/sec | CPU/Database |
+| **Visualization** | 200 sensors @ 60fps | 5K sensors | GPU/Memory |
+
+## Horizontal Scaling
+
+### Service Replication
+
+<Tabs>
+  <Tab title="API Server Scaling">
+    **Load Balanced API Instances**
+    
+    ```yaml
+    # Kubernetes HPA Configuration
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: api-server-hpa
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: api-server
+      minReplicas: 3
+      maxReplicas: 20
+      metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+    ```
+    
+    **Load Balancer Configuration**:
+    ```nginx
+    upstream api_backend {
+        least_conn;
+        server api-1:3001 weight=1 max_fails=3 fail_timeout=30s;
+        server api-2:3001 weight=1 max_fails=3 fail_timeout=30s;
+        server api-3:3001 weight=1 max_fails=3 fail_timeout=30s;
+    }
+    
+    server {
+        listen 80;
+        location /api/ {
+            proxy_pass http://api_backend;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="WebSocket Scaling">
+    **Sticky Session Load Balancing**
+    
+    ```yaml
+    # AWS Application Load Balancer
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: websocket-service
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+        service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    spec:
+      type: LoadBalancer
+      sessionAffinity: ClientIP
+      ports:
+      - port: 3002
+        targetPort: 3002
+        protocol: TCP
+      selector:
+        app: websocket-server
+    ```
+    
+    **Redis Pub/Sub for Multi-Instance Broadcasting**:
+    ```typescript
+    class DistributedWebSocketServer {
+      private redis: Redis;
+      private localClients = new Map<string, WebSocket>();
+      
+      constructor() {
+        this.redis = new Redis(process.env.REDIS_CLUSTER_URL);
+        this.redis.subscribe('sensor-updates');
+        this.redis.on('message', this.broadcastToLocalClients);
+      }
+      
+      async broadcast(message: SensorReading) {
+        // Publish to all instances via Redis
+        await this.redis.publish('sensor-updates', JSON.stringify(message));
+      }
+      
+      private broadcastToLocalClients = (channel: string, message: string) => {
+        const data = JSON.parse(message);
+        this.localClients.forEach(ws => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(message);
+          }
+        });
+      };
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Simulator Scaling">
+    **Distributed Sensor Simulation**
+    
+    ```typescript
+    // Partition sensors across multiple simulators
+    interface SimulatorPartition {
+      id: string;
+      sensorRange: { start: number; end: number };
+      zoneAssignment: string[];
+    }
+    
+    class DistributedSimulator {
+      private partition: SimulatorPartition;
+      
+      constructor(totalSensors: number, instanceIndex: number, totalInstances: number) {
+        const sensorsPerInstance = Math.ceil(totalSensors / totalInstances);
+        const start = instanceIndex * sensorsPerInstance;
+        const end = Math.min(start + sensorsPerInstance, totalSensors);
+        
+        this.partition = {
+          id: `simulator-${instanceIndex}`,
+          sensorRange: { start, end },
+          zoneAssignment: this.calculateZoneAssignment(start, end)
+        };
+      }
+      
+      async generateReadings(): Promise<SensorReading[]> {
+        const readings: SensorReading[] = [];
+        
+        for (let i = this.partition.sensorRange.start; i < this.partition.sensorRange.end; i++) {
+          readings.push(await this.generateSensorReading(i));
+        }
+        
+        return readings;
+      }
+    }
+    ```
+    
+    **Kubernetes Deployment**:
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: sensor-simulator
+    spec:
+      replicas: 5
+      template:
+        spec:
+          containers:
+          - name: simulator
+            image: blink/sensor-simulator:v1.0.0
+            env:
+            - name: TOTAL_SIMULATORS
+              value: "5"
+            - name: SIMULATOR_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['deployment.kubernetes.io/revision']
+            - name: SENSORS_PER_SIMULATOR
+              value: "200"
+    ```
+  </Tab>
+</Tabs>
+
+### Data Layer Scaling
+
+<AccordionGroup>
+  <Accordion title="Kafka Cluster Scaling">
+    **Multi-Broker Setup with Partitioning**
+    
+    ```yaml
+    # Kafka Cluster Configuration
+    kafka:
+      brokers: 6
+      replication_factor: 3
+      topics:
+        sensor-readings:
+          partitions: 24  # 4 partitions per broker
+          retention: "24h"
+          segment_size: "1GB"
+        
+        system-events:
+          partitions: 12
+          retention: "7d"
+          segment_size: "500MB"
+    
+    # Partition Assignment Strategy
+    partition_strategy: "zone-based"  # Sensors in same zone → same partition
+    consumer_groups:
+      - name: "influxdb-writers"
+        instances: 6
+        assignment: "partition-per-instance"
+      - name: "websocket-broadcasters" 
+        instances: 3
+        assignment: "round-robin"
+    ```
+    
+    **Performance Tuning**:
+    ```properties
+    # Broker Configuration
+    num.network.threads=16
+    num.io.threads=32
+    socket.send.buffer.bytes=102400
+    socket.receive.buffer.bytes=102400
+    num.replica.fetchers=8
+    
+    # Producer Configuration  
+    batch.size=32768
+    linger.ms=50
+    compression.type=snappy
+    acks=1
+    
+    # Consumer Configuration
+    fetch.min.bytes=1024
+    fetch.max.wait.ms=500
+    max.partition.fetch.bytes=1048576
+    ```
+  </Accordion>
+  
+  <Accordion title="InfluxDB Clustering">
+    **Enterprise Clustering for Write Scalability**
+    
+    ```yaml
+    # InfluxDB Enterprise Configuration
+    influxdb_enterprise:
+      data_nodes: 6
+      meta_nodes: 3
+      
+      sharding:
+        strategy: "time_zone"  # Shard by time + sensor zone
+        shard_duration: "1h"
+        shard_group_duration: "24h"
+        
+      replication:
+        factor: 2
+        consistency: "one"  # Eventually consistent
+        
+      retention_policies:
+        raw_data:
+          duration: "30d"
+          shard_duration: "1h"
+          replication: 2
+        downsampled_5m:
+          duration: "1y" 
+          shard_duration: "24h"
+          replication: 2
+        downsampled_1h:
+          duration: "5y"
+          shard_duration: "7d"
+          replication: 1
+    ```
+    
+    **Write Performance Optimization**:
+    ```go
+    // Batch Writing Configuration
+    config := client.HTTPConfig{
+        Addr:     "http://influxdb-cluster:8086",
+        Username: "admin",
+        Password: "password",
+        Timeout:  time.Second * 30,
+    }
+    
+    batchConfig := client.BatchPointsConfig{
+        Database:        "sensors",
+        RetentionPolicy: "raw_data",
+        WriteConsistency: "one",
+        Precision:       "ms",
+    }
+    
+    // Optimize for high-throughput writes
+    batch := client.NewBatchPoints(batchConfig)
+    // Add 1000 points before writing
+    for i := 0; i < 1000; i++ {
+        batch.AddPoint(point)
+    }
+    client.Write(batch)
+    ```
+  </Accordion>
+  
+  <Accordion title="Redis Cluster">
+    **High-Availability Caching Layer**
+    
+    ```yaml
+    # Redis Cluster Configuration
+    redis_cluster:
+      nodes: 6
+      masters: 3
+      replicas_per_master: 1
+      
+      memory_optimization:
+        maxmemory: "2gb"
+        maxmemory_policy: "allkeys-lru"
+        save: "900 1 300 10 60 10000"  # Persistence config
+        
+      slot_distribution:
+        node_1: "0-5460"      # Sensor zones A-F
+        node_2: "5461-10922"  # Sensor zones G-M  
+        node_3: "10923-16383" # Sensor zones N-Z
+        
+      use_cases:
+        - current_sensor_values  # Hot cache for latest readings
+        - layout_data           # Data center configuration
+        - session_storage       # WebSocket client sessions
+        - rate_limiting         # API rate limit counters
+    ```
+    
+    **Client Configuration**:
+    ```typescript
+    import { Cluster } from 'ioredis';
+    
+    const redis = new Cluster([
+      { host: 'redis-1', port: 6379 },
+      { host: 'redis-2', port: 6379 },
+      { host: 'redis-3', port: 6379 }
+    ], {
+      redisOptions: {
+        password: process.env.REDIS_PASSWORD,
+        connectTimeout: 10000,
+        commandTimeout: 5000
+      },
+      clusterRetryDelayOnFailover: 100,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 3
+    });
+    
+    // Optimized sensor data caching
+    class SensorCache {
+      async setSensorReading(reading: SensorReading): Promise<void> {
+        const key = `sensor:${reading.sensorId}:current`;
+        const pipeline = redis.pipeline();
+        
+        pipeline.hset(key, {
+          value: reading.value,
+          timestamp: reading.timestamp,
+          status: reading.status
+        });
+        pipeline.expire(key, 300); // 5-minute TTL
+        
+        await pipeline.exec();
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Optimization
+
+### Caching Strategies
+
+<Tabs>
+  <Tab title="Multi-Level Caching">
+    **L1: Application Cache → L2: Redis → L3: Database**
+    
+    ```typescript
+    class LayeredCache {
+      private l1Cache = new Map<string, CacheEntry>();
+      private l2Cache: Redis;
+      private database: InfluxDB;
+      
+      async get(key: string): Promise<any> {
+        // L1 Cache (in-memory)
+        const l1Result = this.l1Cache.get(key);
+        if (l1Result && !this.isExpired(l1Result)) {
+          return l1Result.data;
+        }
+        
+        // L2 Cache (Redis)
+        const l2Result = await this.l2Cache.get(key);
+        if (l2Result) {
+          this.l1Cache.set(key, {
+            data: JSON.parse(l2Result),
+            timestamp: Date.now(),
+            ttl: 60000 // 1 minute L1 TTL
+          });
+          return JSON.parse(l2Result);
+        }
+        
+        // L3 Database
+        const dbResult = await this.database.query(key);
+        if (dbResult) {
+          // Cache in both levels
+          await this.l2Cache.setex(key, 300, JSON.stringify(dbResult)); // 5 min L2 TTL
+          this.l1Cache.set(key, {
+            data: dbResult,
+            timestamp: Date.now(),
+            ttl: 60000
+          });
+          return dbResult;
+        }
+        
+        return null;
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Query Optimization">
+    **InfluxDB Query Performance**
+    
+    ```sql
+    -- Optimized sensor queries
+    
+    -- Bad: Full table scan
+    SELECT * FROM sensor_readings WHERE time > now() - 1h;
+    
+    -- Good: Use time + tag indexes
+    SELECT mean(value) as avg_temp 
+    FROM sensor_readings 
+    WHERE time > now() - 1h 
+      AND zone_id = 'cold-aisle-1'
+    GROUP BY time(5m), sensor_id;
+    
+    -- Best: Pre-aggregated continuous queries
+    CREATE CONTINUOUS QUERY cq_sensor_5m ON sensors
+    BEGIN
+      SELECT mean(value) as avg_temp,
+             max(value) as max_temp,
+             min(value) as min_temp,
+             count(value) as reading_count
+      INTO sensors.autogen.sensor_stats_5m
+      FROM sensors.autogen.sensor_readings
+      GROUP BY time(5m), zone_id, sensor_id
+    END;
+    ```
+    
+    **Index Strategy**:
+    ```yaml
+    # InfluxDB Schema Design
+    measurement: sensor_readings
+    tags:  # Indexed automatically
+      - sensor_id    # High cardinality but frequently queried
+      - zone_id      # Low cardinality, good for grouping  
+      - tower_id     # Medium cardinality
+      - status       # Very low cardinality
+    fields:  # Not indexed
+      - value        # Numeric sensor reading
+      - metadata     # JSON blob for additional data
+    time: timestamp  # Primary index
+    ```
+  </Tab>
+  
+  <Tab title="Connection Pooling">
+    **Database Connection Management**
+    
+    ```typescript
+    // Database connection pooling
+    const influxConfig = {
+      url: 'http://influxdb-cluster:8086',
+      token: process.env.INFLUX_TOKEN,
+      org: 'blink',
+      bucket: 'sensors',
+      
+      // Connection pooling
+      writeOptions: {
+        batchSize: 1000,
+        flushInterval: 5000,
+        maxRetries: 3,
+        maxRetryDelay: 30000,
+        exponentialBase: 2
+      },
+      
+      // Connection limits
+      httpConfig: {
+        keepAlive: true,
+        keepAliveMsecs: 30000,
+        maxSockets: 50,
+        maxFreeSockets: 10,
+        timeout: 30000
+      }
+    };
+    
+    // Redis connection pooling
+    const redisConfig = {
+      host: 'redis-cluster',
+      port: 6379,
+      
+      // Connection pool settings
+      connectTimeout: 10000,
+      lazyConnect: true,
+      maxRetriesPerRequest: 3,
+      retryDelayOnFailover: 100,
+      
+      // Keep-alive settings
+      keepAlive: true,
+      family: 4,
+      
+      // Pool management
+      db: 0,
+      keyPrefix: 'blink:',
+      
+      // Performance tuning
+      enableOfflineQueue: false,
+      enableReadyCheck: true,
+      maxLoadingTimeout: 5000
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Capacity Planning
+
+### Growth Projections
+
+<Info>
+**Planning Horizon**: Scale from current 200 sensors to 100,000+ sensors over 24 months
+</Info>
+
+| Timeline | Sensor Count | Message Rate | Infrastructure Needs |
+|----------|--------------|--------------|----------------------|
+| **Current** | 203 | 100/sec | Single node per service |
+| **6 months** | 2,000 | 1,000/sec | 3-node clusters |
+| **12 months** | 10,000 | 5,000/sec | Multi-region deployment |
+| **24 months** | 100,000 | 50,000/sec | Enterprise clusters |
+
+### Resource Requirements
+
+<AccordionGroup>
+  <Accordion title="Compute Resources">
+    **CPU and Memory Scaling**
+    
+    ```yaml
+    # Resource allocation per scale tier
+    
+    Small (1K sensors):
+      api_servers: 3 instances
+        cpu: 500m
+        memory: 1Gi
+      websocket_servers: 2 instances  
+        cpu: 250m
+        memory: 512Mi
+      simulators: 2 instances
+        cpu: 1000m
+        memory: 2Gi
+        
+    Medium (10K sensors):
+      api_servers: 6 instances
+        cpu: 1000m  
+        memory: 2Gi
+      websocket_servers: 4 instances
+        cpu: 500m
+        memory: 1Gi
+      simulators: 10 instances
+        cpu: 2000m
+        memory: 4Gi
+        
+    Large (100K sensors):
+      api_servers: 20 instances
+        cpu: 2000m
+        memory: 4Gi
+      websocket_servers: 15 instances
+        cpu: 1000m
+        memory: 2Gi
+      simulators: 50 instances
+        cpu: 4000m
+        memory: 8Gi
+    ```
+  </Accordion>
+  
+  <Accordion title="Storage Scaling">
+    **Data Storage Growth Patterns**
+    
+    ```yaml
+    # Storage requirements per sensor count
+    
+    data_growth:
+      per_sensor_per_day: 86.4KB  # 1 reading/2sec * 24h * 100 bytes
+      
+    storage_tiers:
+      1K_sensors:
+        daily: 86.4MB
+        monthly: 2.6GB
+        yearly: 31.5GB
+        
+      10K_sensors:
+        daily: 864MB
+        monthly: 26GB
+        yearly: 315GB
+        
+      100K_sensors:
+        daily: 8.64GB
+        monthly: 260GB
+        yearly: 3.15TB
+        
+    # Retention policies
+    retention:
+      raw_data: 30d      # High resolution for recent analysis
+      5min_avg: 1y       # Medium resolution for trends
+      1hour_avg: 5y      # Low resolution for long-term analysis
+      
+    # Storage optimization
+    compression:
+      influxdb: snappy   # ~70% compression ratio
+      kafka: lz4        # ~60% compression ratio
+      backups: gzip     # ~80% compression ratio
+    ```
+  </Accordion>
+  
+  <Accordion title="Network Bandwidth">
+    **Network Requirements by Scale**
+    
+    ```yaml
+    # Bandwidth calculations
+    
+    message_size:
+      sensor_reading: 150 bytes (JSON)
+      compressed: 90 bytes (gzip)
+      
+    bandwidth_per_1k_sensors:
+      ingress: 150KB/s  # From simulators
+      kafka_internal: 300KB/s  # Replication factor 2
+      websocket_egress: 15MB/s  # 100 concurrent clients
+      api_requests: 50KB/s  # Background queries
+      
+    network_scaling:
+      1K_sensors: 1Mbps
+      10K_sensors: 10Mbps  
+      100K_sensors: 100Mbps
+      
+    # Network optimization
+    optimizations:
+      - Message compression (gzip/snappy)
+      - Connection pooling and keep-alive
+      - CDN for static visualization assets
+      - Regional data centers for global deployment
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Cost Optimization
+
+### Resource Efficiency
+
+<Tabs>
+  <Tab title="Auto-Scaling">
+    **Dynamic Resource Allocation**
+    
+    ```yaml
+    # HPA with custom metrics
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: api-server-hpa
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: api-server
+      minReplicas: 3
+      maxReplicas: 50
+      metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Pods
+        pods:
+          metric:
+            name: websocket_connections_per_pod
+          target:
+            type: AverageValue
+            averageValue: "500"
+      - type: External
+        external:
+          metric:
+            name: kafka_consumer_lag
+          target:
+            type: Value
+            value: "1000"
+    ```
+  </Tab>
+  
+  <Tab title="Spot Instances">
+    **Cost-Effective Compute**
+    
+    ```yaml
+    # Mixed instance deployment
+    nodeGroups:
+      - name: on-demand-critical
+        instanceTypes: ["m5.large", "m5.xlarge"]
+        minSize: 3
+        maxSize: 10
+        desiredCapacity: 3
+        spot: false
+        labels:
+          node-type: "critical"
+        taints:
+          - key: "critical-only"
+            value: "true"
+            effect: "NoSchedule"
+            
+      - name: spot-workers
+        instanceTypes: ["m5.large", "m4.large", "c5.large"]
+        minSize: 0
+        maxSize: 100
+        desiredCapacity: 5
+        spot: true
+        spotInstancePools: 3
+        labels:
+          node-type: "worker"
+          
+    # Pod scheduling preferences
+    apiVersion: v1
+    kind: Pod
+    spec:
+      nodeSelector:
+        node-type: "worker"  # Prefer spot instances
+      tolerations:
+      - key: "spot-instance"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+    ```
+  </Tab>
+  
+  <Tab title="Storage Tiering">
+    **Intelligent Data Lifecycle**
+    
+    ```yaml
+    # Storage classes for different data types
+    
+    hot_storage:  # SSD for active data
+      class: "fast-ssd"
+      use_cases: 
+        - "Current sensor values (Redis)"
+        - "Recent time-series (InfluxDB hot tier)"
+        - "WebSocket message buffers"
+      retention: "7d"
+      cost_per_gb_month: "$0.20"
+      
+    warm_storage:  # Standard SSD for frequent access
+      class: "standard-ssd" 
+      use_cases:
+        - "Time-series data (1-30 days)"
+        - "Application logs"
+        - "Configuration data"
+      retention: "30d"
+      cost_per_gb_month: "$0.10"
+      
+    cold_storage:  # HDD for archival
+      class: "standard-hdd"
+      use_cases:
+        - "Historical data (30d+)"
+        - "Compressed backups"
+        - "Audit logs"
+      retention: "1y+"
+      cost_per_gb_month: "$0.03"
+      
+    # Automated lifecycle policies
+    lifecycle_rules:
+      - name: "sensor-data-aging"
+        transition_to_warm: "7d"
+        transition_to_cold: "30d"
+        delete_after: "5y"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+<Note>
+**Implementation Guide**: Start with [performance monitoring](/architecture/overview#monitoring--operations) to establish baselines, then implement scaling strategies based on actual usage patterns and growth projections.
+</Note> 

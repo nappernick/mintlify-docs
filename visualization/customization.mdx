@@ -1,0 +1,590 @@
+---
+title: "Visualization Customization"
+description: "Customize the 3D visualization interface with themes, color schemes, layouts, and personalized viewing preferences."
+icon: "palette"
+---
+
+# Visualization Customization
+
+Blink's **3D Visualization** offers extensive customization options to tailor the interface to your specific needs, team preferences, and operational requirements.
+
+## Customization Overview
+
+<CardGroup cols={2}>
+  <Card title="Color Themes" icon="palette">
+    **Visual appearance control**
+    - Dark and light modes
+    - Custom color schemes
+    - Temperature color mapping
+    - Brand-specific themes
+  </Card>
+  
+  <Card title="Layout Options" icon="grid">
+    **Interface arrangement**
+    - Panel positioning
+    - Dashboard layouts
+    - Multi-monitor support
+    - Responsive breakpoints
+  </Card>
+  
+  <Card title="View Preferences" icon="eye">
+    **Personalized settings**
+    - Default camera angles
+    - Zoom preferences
+    - Filter presets
+    - Sensor groupings
+  </Card>
+  
+  <Card title="Control Customization" icon="sliders">
+    **Interaction preferences**
+    - Keyboard shortcuts
+    - Mouse sensitivity
+    - Touch gestures
+    - Voice commands
+  </Card>
+</CardGroup>
+
+## Theme Customization
+
+### Color Schemes
+
+<Tabs>
+  <Tab title="Temperature Color Maps">
+    **Thermal visualization colors**
+    
+    ```typescript
+    // Custom temperature color schemes
+    interface TemperatureColorScheme {
+      name: string;
+      colors: {
+        cold: string;     // 15-18°C
+        cool: string;     // 18-22°C
+        normal: string;   // 22-26°C
+        warm: string;     // 26-30°C
+        hot: string;      // 30-35°C
+        critical: string; // 35°C+
+      };
+    }
+    
+    const colorSchemes: TemperatureColorScheme[] = [
+      {
+        name: 'Classic Thermal',
+        colors: {
+          cold: '#0066CC',
+          cool: '#0099FF',
+          normal: '#00CC66',
+          warm: '#FFCC00',
+          hot: '#FF6600',
+          critical: '#CC0000'
+        }
+      },
+      {
+        name: 'High Contrast',
+        colors: {
+          cold: '#000080',
+          cool: '#0000FF',
+          normal: '#008000',
+          warm: '#FFD700',
+          hot: '#FF4500',
+          critical: '#8B0000'
+        }
+      },
+      {
+        name: 'Monochrome',
+        colors: {
+          cold: '#2C2C2C',
+          cool: '#404040',
+          normal: '#666666',
+          warm: '#999999',
+          hot: '#CCCCCC',
+          critical: '#FFFFFF'
+        }
+      }
+    ];
+    ```
+  </Tab>
+  
+  <Tab title="Interface Themes">
+    **Overall UI appearance**
+    
+    ```css
+    /* Dark Theme */
+    .theme-dark {
+      --background-primary: #1a1a1a;
+      --background-secondary: #2d2d2d;
+      --text-primary: #ffffff;
+      --text-secondary: #cccccc;
+      --border-color: #444444;
+      --accent-color: #00D9FF;
+    }
+    
+    /* Light Theme */
+    .theme-light {
+      --background-primary: #ffffff;
+      --background-secondary: #f5f5f5;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --border-color: #dddddd;
+      --accent-color: #0277BD;
+    }
+    
+    /* High Contrast Theme */
+    .theme-high-contrast {
+      --background-primary: #000000;
+      --background-secondary: #333333;
+      --text-primary: #ffffff;
+      --text-secondary: #ffff00;
+      --border-color: #ffffff;
+      --accent-color: #00ff00;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Brand Themes">
+    **Corporate branding integration**
+    
+    ```typescript
+    // Brand-specific theme configuration
+    interface BrandTheme {
+      name: string;
+      logo: string;
+      colors: {
+        primary: string;
+        secondary: string;
+        accent: string;
+      };
+      fonts: {
+        heading: string;
+        body: string;
+        monospace: string;
+      };
+    }
+    
+    const brandThemes: BrandTheme[] = [
+      {
+        name: 'Corporate Blue',
+        logo: '/logos/company-logo.svg',
+        colors: {
+          primary: '#003366',
+          secondary: '#0066CC',
+          accent: '#66CCFF'
+        },
+        fonts: {
+          heading: 'Roboto, sans-serif',
+          body: 'Open Sans, sans-serif',
+          monospace: 'Fira Code, monospace'
+        }
+      }
+    ];
+    ```
+  </Tab>
+</Tabs>
+
+## Layout Customization
+
+### Dashboard Layouts
+
+<AccordionGroup>
+  <Accordion title="Standard Layouts">
+    **Pre-configured dashboard arrangements**
+    
+    ```typescript
+    // Dashboard layout templates
+    interface DashboardLayout {
+      id: string;
+      name: string;
+      description: string;
+      panels: PanelConfiguration[];
+    }
+    
+    const standardLayouts: DashboardLayout[] = [
+      {
+        id: 'operations',
+        name: 'Operations Center',
+        description: 'Full-screen 3D view with minimal controls',
+        panels: [
+          { type: '3d-visualization', position: 'main', size: 'full' },
+          { type: 'alert-summary', position: 'overlay-top-right', size: 'small' },
+          { type: 'quick-stats', position: 'overlay-bottom-left', size: 'small' }
+        ]
+      },
+      {
+        id: 'analysis',
+        name: 'Analysis Dashboard',
+        description: 'Split view with charts and 3D visualization',
+        panels: [
+          { type: '3d-visualization', position: 'left', size: 'large' },
+          { type: 'temperature-chart', position: 'right-top', size: 'medium' },
+          { type: 'sensor-table', position: 'right-bottom', size: 'medium' }
+        ]
+      },
+      {
+        id: 'monitoring',
+        name: 'Real-time Monitoring',
+        description: 'Multiple views for comprehensive monitoring',
+        panels: [
+          { type: '3d-visualization', position: 'top-left', size: 'large' },
+          { type: 'heat-map', position: 'top-right', size: 'medium' },
+          { type: 'alert-timeline', position: 'bottom-left', size: 'medium' },
+          { type: 'system-health', position: 'bottom-right', size: 'medium' }
+        ]
+      }
+    ];
+    ```
+  </Accordion>
+  
+  <Accordion title="Custom Panel Positioning">
+    **Flexible panel arrangement**
+    
+    ```typescript
+    // Custom panel positioning system
+    class PanelManager {
+      private panels = new Map<string, Panel>();
+      private layout: LayoutGrid;
+      
+      constructor() {
+        this.layout = new LayoutGrid(12, 8); // 12x8 grid system
+      }
+      
+      addPanel(panel: Panel, position: GridPosition): void {
+        this.panels.set(panel.id, panel);
+        this.layout.placePanel(panel.id, position);
+        this.updateLayout();
+      }
+      
+      movePanel(panelId: string, newPosition: GridPosition): void {
+        if (this.panels.has(panelId)) {
+          this.layout.movePanel(panelId, newPosition);
+          this.updateLayout();
+        }
+      }
+      
+      resizePanel(panelId: string, newSize: GridSize): void {
+        if (this.panels.has(panelId)) {
+          this.layout.resizePanel(panelId, newSize);
+          this.updateLayout();
+        }
+      }
+      
+      private updateLayout(): void {
+        // Emit layout change event
+        this.emit('layout-changed', this.getLayoutConfiguration());
+      }
+      
+      exportLayout(): LayoutConfiguration {
+        return {
+          grid: this.layout.getConfiguration(),
+          panels: Array.from(this.panels.values()).map(panel => ({
+            id: panel.id,
+            type: panel.type,
+            settings: panel.getSettings()
+          }))
+        };
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Multi-Monitor Support">
+    **Extended display configuration**
+    
+    ```typescript
+    // Multi-monitor layout management
+    class MultiMonitorManager {
+      private monitors: MonitorConfiguration[] = [];
+      private layouts = new Map<string, DisplayLayout>();
+      
+      detectMonitors(): MonitorConfiguration[] {
+        if ('screen' in window && 'isExtended' in screen) {
+          // Use Screen API for multi-monitor detection
+          return this.getExtendedDisplays();
+        } else {
+          // Fallback to window size detection
+          return this.detectByWindowSize();
+        }
+      }
+      
+      createDisplayLayout(monitors: MonitorConfiguration[]): DisplayLayout {
+        const layout: DisplayLayout = {
+          primary: {
+            monitor: monitors[0],
+            content: '3d-visualization',
+            fullscreen: true
+          },
+          secondary: monitors.slice(1).map((monitor, index) => ({
+            monitor,
+            content: index === 0 ? 'charts-dashboard' : 'monitoring-panels',
+            fullscreen: false
+          }))
+        };
+        
+        return layout;
+      }
+      
+      optimizeForMonitors(count: number): LayoutRecommendation {
+        switch (count) {
+          case 1:
+            return { layout: 'single-screen', recommendation: 'operations' };
+          case 2:
+            return { layout: 'dual-screen', recommendation: 'analysis' };
+          case 3:
+            return { layout: 'triple-screen', recommendation: 'monitoring' };
+          default:
+            return { layout: 'custom', recommendation: 'enterprise' };
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## User Preferences
+
+### Personal Settings
+
+<CodeGroup>
+
+```typescript View Preferences
+// User preference management
+interface UserPreferences {
+  visualization: {
+    defaultView: CameraPreset;
+    animationSpeed: number;
+    particleEffects: boolean;
+    autoRotate: boolean;
+  };
+  
+  data: {
+    defaultTimeRange: string;
+    refreshInterval: number;
+    temperatureUnit: 'celsius' | 'fahrenheit';
+    numberFormat: 'decimal' | 'scientific';
+  };
+  
+  interface: {
+    theme: string;
+    language: string;
+    timezone: string;
+    dateFormat: string;
+  };
+  
+  notifications: {
+    enabled: boolean;
+    criticalAlerts: boolean;
+    warningAlerts: boolean;
+    sound: boolean;
+    desktop: boolean;
+  };
+}
+
+class PreferenceManager {
+  private preferences: UserPreferences;
+  
+  constructor() {
+    this.preferences = this.loadPreferences();
+  }
+  
+  updatePreference<K extends keyof UserPreferences>(
+    category: K,
+    settings: Partial<UserPreferences[K]>
+  ): void {
+    this.preferences[category] = {
+      ...this.preferences[category],
+      ...settings
+    };
+    
+    this.savePreferences();
+    this.applyPreferences(category);
+  }
+  
+  private applyPreferences(category: keyof UserPreferences): void {
+    switch (category) {
+      case 'visualization':
+        this.applyVisualizationSettings();
+        break;
+      case 'data':
+        this.applyDataSettings();
+        break;
+      case 'interface':
+        this.applyInterfaceSettings();
+        break;
+      case 'notifications':
+        this.applyNotificationSettings();
+        break;
+    }
+  }
+}
+```
+
+```typescript Filter Presets
+// Custom filter presets
+interface FilterPreset {
+  id: string;
+  name: string;
+  description: string;
+  filters: {
+    zones?: string[];
+    temperatureRange?: { min: number; max: number };
+    sensorTypes?: string[];
+    alertLevels?: string[];
+    timeRange?: string;
+  };
+}
+
+class FilterPresetManager {
+  private presets: FilterPreset[] = [];
+  
+  createPreset(name: string, description: string, currentFilters: any): FilterPreset {
+    const preset: FilterPreset = {
+      id: this.generateId(),
+      name,
+      description,
+      filters: { ...currentFilters }
+    };
+    
+    this.presets.push(preset);
+    this.savePresets();
+    
+    return preset;
+  }
+  
+  applyPreset(presetId: string): void {
+    const preset = this.presets.find(p => p.id === presetId);
+    if (preset) {
+      this.emit('apply-filters', preset.filters);
+    }
+  }
+  
+  getPresets(): FilterPreset[] {
+    return [...this.presets];
+  }
+  
+  deletePreset(presetId: string): void {
+    this.presets = this.presets.filter(p => p.id !== presetId);
+    this.savePresets();
+  }
+}
+```
+
+```typescript Keyboard Shortcuts
+// Customizable keyboard shortcuts
+interface KeyboardShortcut {
+  key: string;
+  modifiers: ('ctrl' | 'shift' | 'alt' | 'meta')[];
+  action: string;
+  description: string;
+}
+
+const defaultShortcuts: KeyboardShortcut[] = [
+  { key: 'r', modifiers: [], action: 'reset-view', description: 'Reset camera view' },
+  { key: 'f', modifiers: [], action: 'toggle-fullscreen', description: 'Toggle fullscreen' },
+  { key: 'h', modifiers: [], action: 'toggle-heatmap', description: 'Toggle heat map' },
+  { key: 'l', modifiers: [], action: 'toggle-legend', description: 'Toggle legend' },
+  { key: 's', modifiers: ['ctrl'], action: 'save-view', description: 'Save current view' },
+  { key: 'p', modifiers: ['ctrl'], action: 'print-view', description: 'Print current view' },
+  { key: 'e', modifiers: ['ctrl'], action: 'export-data', description: 'Export data' }
+];
+
+class KeyboardShortcutManager {
+  private shortcuts = new Map<string, KeyboardShortcut>();
+  
+  constructor() {
+    this.loadShortcuts();
+    this.setupEventListeners();
+  }
+  
+  registerShortcut(shortcut: KeyboardShortcut): void {
+    const key = this.createShortcutKey(shortcut);
+    this.shortcuts.set(key, shortcut);
+    this.saveShortcuts();
+  }
+  
+  private createShortcutKey(shortcut: KeyboardShortcut): string {
+    const modifiers = shortcut.modifiers.sort().join('+');
+    return modifiers ? `${modifiers}+${shortcut.key}` : shortcut.key;
+  }
+  
+  private handleKeyDown = (event: KeyboardEvent): void => {
+    const modifiers: string[] = [];
+    if (event.ctrlKey) modifiers.push('ctrl');
+    if (event.shiftKey) modifiers.push('shift');
+    if (event.altKey) modifiers.push('alt');
+    if (event.metaKey) modifiers.push('meta');
+    
+    const key = modifiers.sort().join('+') + (modifiers.length ? '+' : '') + event.key.toLowerCase();
+    const shortcut = this.shortcuts.get(key);
+    
+    if (shortcut) {
+      event.preventDefault();
+      this.executeAction(shortcut.action);
+    }
+  };
+}
+```
+
+</CodeGroup>
+
+## Advanced Customization
+
+### Plugin System
+
+<Info>
+**Plugin Development**: Extend Blink's visualization with custom plugins for specialized requirements and integrations.
+</Info>
+
+```typescript
+// Plugin interface for custom visualizations
+interface VisualizationPlugin {
+  id: string;
+  name: string;
+  version: string;
+  
+  // Plugin lifecycle
+  initialize(context: PluginContext): Promise<void>;
+  activate(): Promise<void>;
+  deactivate(): Promise<void>;
+  
+  // Custom rendering
+  render(data: SensorData[], container: HTMLElement): void;
+  update(data: SensorData[]): void;
+  resize(width: number, height: number): void;
+  
+  // Settings interface
+  getSettings(): PluginSettings;
+  updateSettings(settings: Partial<PluginSettings>): void;
+}
+
+// Example custom plugin
+class HeatFlowPlugin implements VisualizationPlugin {
+  id = 'heat-flow-visualization';
+  name = 'Heat Flow Vectors';
+  version = '1.0.0';
+  
+  private canvas: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  
+  async initialize(context: PluginContext): Promise<void> {
+    this.canvas = context.createCanvas();
+    this.context = this.canvas.getContext('2d');
+  }
+  
+  render(data: SensorData[], container: HTMLElement): void {
+    // Custom heat flow visualization logic
+    this.drawHeatFlowVectors(data);
+  }
+  
+  private drawHeatFlowVectors(data: SensorData[]): void {
+    // Implementation of heat flow vector visualization
+    data.forEach(sensor => {
+      const gradient = this.calculateTemperatureGradient(sensor);
+      this.drawFlowVector(sensor.position, gradient);
+    });
+  }
+}
+```
+
+---
+
+<Note>
+**Apply Changes**: Customization settings are automatically saved and synchronized across sessions. Use the Settings panel to access all customization options.
+</Note> 

@@ -1,0 +1,821 @@
+---
+title: "Interactive Controls"
+description: "Comprehensive guide to navigating and controlling the 3D data center visualization with mouse, keyboard, and touch interactions."
+icon: "gamepad"
+---
+
+# Interactive Controls
+
+Blink's **3D Interactive Controls** provide intuitive navigation through your data center environment with multiple input methods, customizable settings, and accessibility features. Master these controls to efficiently explore sensor data and identify thermal patterns.
+
+## Control Overview
+
+<CardGroup cols={2}>
+  <Card title="🖱️ Mouse Controls" icon="computer-mouse">
+    **Point and click navigation**
+    - Left-click to rotate view
+    - Right-click to pan
+    - Scroll wheel to zoom
+    - Double-click sensor selection
+  </Card>
+  
+  <Card title="⌨️ Keyboard Shortcuts" icon="keyboard">
+    **Efficient hotkey navigation**
+    - WASD for camera movement
+    - Arrow keys for precision
+    - Space bar for quick actions
+    - Number keys for presets
+  </Card>
+  
+  <Card title="📱 Touch Gestures" icon="hand">
+    **Mobile and tablet support**
+    - Pinch to zoom
+    - Two-finger rotation
+    - Tap sensor selection
+    - Swipe navigation
+  </Card>
+  
+  <Card title="🎮 Gamepad Support" icon="gamepad">
+    **Controller integration**
+    - Analog stick movement
+    - Button shortcuts
+    - Haptic feedback
+    - Custom button mapping
+  </Card>
+</CardGroup>
+
+## Mouse Controls
+
+### Basic Navigation
+
+<Tabs>
+  <Tab title="Camera Movement">
+    **3D Scene Navigation**
+    
+    | Action | Mouse Control | Description |
+    |--------|---------------|-------------|
+    | **Rotate** | Left Click + Drag | Orbit around the center point |
+    | **Pan** | Right Click + Drag | Move the view laterally |
+    | **Zoom** | Scroll Wheel | Move closer or further from scene |
+    | **Reset** | Middle Click | Return to default view |
+    
+    ```typescript
+    // Camera control implementation
+    class CameraController {
+      private controls: THREE.OrbitControls;
+      
+      constructor(camera: THREE.Camera, domElement: HTMLElement) {
+        this.controls = new THREE.OrbitControls(camera, domElement);
+        
+        // Configure movement
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+        this.controls.rotateSpeed = 0.5;
+        this.controls.panSpeed = 0.8;
+        this.controls.zoomSpeed = 0.6;
+        
+        // Set boundaries
+        this.controls.minDistance = 5;
+        this.controls.maxDistance = 500;
+        this.controls.maxPolarAngle = Math.PI * 0.8; // Prevent going under floor
+      }
+      
+      update(): void {
+        this.controls.update();
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Sensor Interaction">
+    **Selecting and Exploring Sensors**
+    
+    | Action | Mouse Control | Result |
+    |--------|---------------|--------|
+    | **Select Sensor** | Left Click on Sensor | Open sensor details panel |
+    | **Multi-Select** | Ctrl + Click | Add to selection group |
+    | **Hover Info** | Mouse Over | Show temperature tooltip |
+    | **Context Menu** | Right Click on Sensor | Sensor actions menu |
+    
+    ```typescript
+    // Sensor interaction system
+    class SensorInteractionController {
+      private raycaster = new THREE.Raycaster();
+      private mouse = new THREE.Vector2();
+      private selectedSensors: Set<string> = new Set();
+      
+      onMouseClick(event: MouseEvent): void {
+        this.updateMousePosition(event);
+        
+        const intersects = this.raycaster.intersectObjects(this.sensorMeshes);
+        
+        if (intersects.length > 0) {
+          const sensorId = intersects[0].object.userData.sensorId;
+          
+          if (event.ctrlKey) {
+            // Multi-select mode
+            this.toggleSensorSelection(sensorId);
+          } else {
+            // Single selection
+            this.selectSensor(sensorId);
+          }
+          
+          this.onSensorSelected(sensorId);
+        } else {
+          // Clicked empty space - deselect all
+          this.clearSelection();
+        }
+      }
+      
+      onMouseMove(event: MouseEvent): void {
+        this.updateMousePosition(event);
+        
+        const intersects = this.raycaster.intersectObjects(this.sensorMeshes);
+        
+        if (intersects.length > 0) {
+          const sensor = intersects[0].object.userData.sensor;
+          this.showSensorTooltip(sensor, event.clientX, event.clientY);
+        } else {
+          this.hideSensorTooltip();
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="View Manipulation">
+    **Advanced View Controls**
+    
+    | Action | Mouse Control | Description |
+    |--------|---------------|-------------|
+    | **Focus on Sensor** | Double Click | Center view on specific sensor |
+    | **Zoom to Fit** | Shift + Double Click | Fit all sensors in view |
+    | **Box Select** | Alt + Drag | Select sensors in rectangular area |
+    | **Measure Distance** | M + Click Two Points | Measure distance between sensors |
+    
+    ```typescript
+    // Advanced view controls
+    class ViewManipulator {
+      focusOnSensor(sensorId: string): void {
+        const sensor = this.getSensorById(sensorId);
+        if (!sensor) return;
+        
+        const targetPosition = new THREE.Vector3(sensor.x, sensor.y, sensor.z);
+        
+        // Smooth animation to sensor
+        this.animateCameraTo(targetPosition, 2.0);
+        
+        // Highlight the sensor
+        this.highlightSensor(sensorId, 3000); // 3 second highlight
+      }
+      
+      zoomToFitAll(): void {
+        const boundingBox = this.calculateSensorBounds();
+        const center = boundingBox.getCenter(new THREE.Vector3());
+        const size = boundingBox.getSize(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const distance = maxDim / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
+        
+        this.animateCameraTo(center, distance * 1.2);
+      }
+      
+      boxSelect(startX: number, startY: number, endX: number, endY: number): string[] {
+        const selectedSensors: string[] = [];
+        
+        this.sensorMeshes.forEach(mesh => {
+          const screenPos = this.worldToScreen(mesh.position);
+          
+          if (this.isPointInBox(screenPos, startX, startY, endX, endY)) {
+            selectedSensors.push(mesh.userData.sensorId);
+          }
+        });
+        
+        return selectedSensors;
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Keyboard Shortcuts
+
+### Essential Hotkeys
+
+<AccordionGroup>
+  <Accordion title="Camera Movement (WASD)">
+    **First-person style navigation**
+    
+    ```typescript
+    // Keyboard movement controller
+    class KeyboardController {
+      private keys = new Set<string>();
+      private moveSpeed = 10.0;
+      private rotateSpeed = 0.02;
+      
+      private keyActions = {
+        'KeyW': () => this.moveForward(),
+        'KeyS': () => this.moveBackward(),
+        'KeyA': () => this.moveLeft(),
+        'KeyD': () => this.moveRight(),
+        'KeyQ': () => this.moveUp(),
+        'KeyE': () => this.moveDown(),
+        'ArrowUp': () => this.rotateUp(),
+        'ArrowDown': () => this.rotateDown(),
+        'ArrowLeft': () => this.rotateLeft(),
+        'ArrowRight': () => this.rotateRight()
+      };
+      
+      update(deltaTime: number): void {
+        this.keys.forEach(key => {
+          const action = this.keyActions[key];
+          if (action) action();
+        });
+      }
+      
+      private moveForward(): void {
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyQuaternion(this.camera.quaternion);
+        this.camera.position.addScaledVector(forward, this.moveSpeed * deltaTime);
+      }
+    }
+    ```
+    
+    **Movement Keys**:
+    - **W** - Move forward
+    - **S** - Move backward  
+    - **A** - Move left
+    - **D** - Move right
+    - **Q** - Move up
+    - **E** - Move down
+    - **Arrow Keys** - Rotate view
+  </Accordion>
+  
+  <Accordion title="View Presets (1-9)">
+    **Quick camera positions**
+    
+    ```typescript
+    // Preset view manager
+    class ViewPresetManager {
+      private presets: Map<number, CameraState> = new Map([
+        [1, { name: 'Overview', position: [0, 50, 100], target: [0, 0, 0] }],
+        [2, { name: 'Front', position: [0, 20, 80], target: [0, 0, 0] }],
+        [3, { name: 'Side', position: [80, 20, 0], target: [0, 0, 0] }],
+        [4, { name: 'Top-Down', position: [0, 100, 0], target: [0, 0, 0] }],
+        [5, { name: 'Cold Aisle', position: [-30, 10, 0], target: [0, 0, 0] }],
+        [6, { name: 'Hot Aisle', position: [30, 10, 0], target: [0, 0, 0] }],
+        [7, { name: 'Corner', position: [60, 30, 60], target: [0, 0, 0] }],
+        [8, { name: 'Close-up', position: [0, 5, 20], target: [0, 0, 0] }],
+        [9, { name: 'Walkthrough', position: [0, 2, 50], target: [0, 2, 0] }]
+      ]);
+      
+      activatePreset(number: number): void {
+        const preset = this.presets.get(number);
+        if (!preset) return;
+        
+        this.animateCameraToPreset(preset);
+        this.showPresetNotification(preset.name);
+      }
+    }
+    ```
+    
+    **Preset Views**:
+    - **1** - Overview (default bird's eye)
+    - **2** - Front view
+    - **3** - Side view  
+    - **4** - Top-down
+    - **5** - Cold aisle perspective
+    - **6** - Hot aisle perspective
+    - **7** - Corner angle
+    - **8** - Close-up detail
+    - **9** - Floor walkthrough
+  </Accordion>
+  
+  <Accordion title="Selection & Filtering">
+    **Data exploration shortcuts**
+    
+    ```typescript
+    // Selection and filter shortcuts
+    class SelectionController {
+      private shortcuts = {
+        'KeyF': () => this.toggleFilterPanel(),
+        'KeyH': () => this.toggleHeatMapMode(),
+        'KeyL': () => this.toggleLegend(),
+        'KeyG': () => this.toggleGrid(),
+        'KeyT': () => this.toggleTemperatureLabels(),
+        'Escape': () => this.clearSelection(),
+        'Delete': () => this.hideSe
+        'Space': () => this.pauseRealTime(),
+        'KeyR': () => this.resetView(),
+        'KeyZ': () => this.undo(),
+        'KeyY': () => this.redo()
+      };
+      
+      handleKeyDown(event: KeyboardEvent): void {
+        const action = this.shortcuts[event.code];
+        if (action) {
+          action();
+          event.preventDefault();
+        }
+      }
+    }
+    ```
+    
+    **Function Keys**:
+    - **F** - Toggle filter panel
+    - **H** - Toggle heat map mode
+    - **L** - Toggle legend
+    - **G** - Toggle grid overlay
+    - **T** - Toggle temperature labels
+    - **Space** - Pause/resume real-time updates
+    - **Esc** - Clear selection
+    - **R** - Reset to default view
+    - **Z** - Undo last action
+    - **Y** - Redo action
+  </Accordion>
+</AccordionGroup>
+
+## Touch Controls
+
+### Mobile & Tablet Support
+
+<Tabs>
+  <Tab title="Basic Gestures">
+    **Standard touch interactions**
+    
+    | Gesture | Action | Description |
+    |---------|--------|-------------|
+    | **Single Tap** | Select sensor | Open sensor details |
+    | **Double Tap** | Focus view | Center on tapped location |
+    | **Long Press** | Context menu | Show sensor options |
+    | **Swipe** | Pan view | Move camera in swipe direction |
+    
+    ```typescript
+    // Touch gesture controller
+    class TouchController {
+      private touchStart = new THREE.Vector2();
+      private touchEnd = new THREE.Vector2();
+      private lastTouchTime = 0;
+      private longPressTimeout: number | null = null;
+      
+      onTouchStart(event: TouchEvent): void {
+        if (event.touches.length === 1) {
+          this.touchStart.set(event.touches[0].clientX, event.touches[0].clientY);
+          
+          // Setup long press detection
+          this.longPressTimeout = setTimeout(() => {
+            this.handleLongPress(this.touchStart);
+          }, 500);
+        }
+      }
+      
+      onTouchEnd(event: TouchEvent): void {
+        if (this.longPressTimeout) {
+          clearTimeout(this.longPressTimeout);
+          this.longPressTimeout = null;
+        }
+        
+        if (event.changedTouches.length === 1) {
+          this.touchEnd.set(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+          
+          const distance = this.touchStart.distanceTo(this.touchEnd);
+          const timeDiff = Date.now() - this.lastTouchTime;
+          
+          if (distance < 10) { // Tap
+            if (timeDiff < 300) {
+              this.handleDoubleTap(this.touchEnd);
+            } else {
+              this.handleSingleTap(this.touchEnd);
+            }
+          }
+          
+          this.lastTouchTime = Date.now();
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Multi-touch">
+    **Advanced gesture recognition**
+    
+    | Gesture | Action | Description |
+    |---------|--------|-------------|
+    | **Pinch In** | Zoom out | Reduce camera distance |
+    | **Pinch Out** | Zoom in | Increase camera distance |
+    | **Two-finger rotate** | Rotate view | Orbit around center |
+    | **Three-finger swipe** | Change mode | Switch visualization modes |
+    
+    ```typescript
+    // Multi-touch gesture recognition
+    class MultiTouchController {
+      private touches: Map<number, TouchPoint> = new Map();
+      private initialDistance = 0;
+      private initialRotation = 0;
+      
+      onTouchStart(event: TouchEvent): void {
+        for (let i = 0; i < event.touches.length; i++) {
+          const touch = event.touches[i];
+          this.touches.set(touch.identifier, {
+            x: touch.clientX,
+            y: touch.clientY,
+            timestamp: Date.now()
+          });
+        }
+        
+        if (this.touches.size === 2) {
+          this.setupTwoFingerGestures();
+        }
+      }
+      
+      onTouchMove(event: TouchEvent): void {
+        if (this.touches.size === 2) {
+          this.handleTwoFingerGestures(event);
+        } else if (this.touches.size === 3) {
+          this.handleThreeFingerGestures(event);
+        }
+      }
+      
+      private handleTwoFingerGestures(event: TouchEvent): void {
+        const touch1 = event.touches[0];
+        const touch2 = event.touches[1];
+        
+        // Calculate pinch (zoom)
+        const currentDistance = this.calculateDistance(touch1, touch2);
+        const zoomFactor = currentDistance / this.initialDistance;
+        this.handleZoom(zoomFactor);
+        
+        // Calculate rotation
+        const currentRotation = this.calculateRotation(touch1, touch2);
+        const rotationDelta = currentRotation - this.initialRotation;
+        this.handleRotation(rotationDelta);
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Haptic Feedback">
+    **Touch response enhancement**
+    
+    ```typescript
+    // Haptic feedback system
+    class HapticController {
+      private vibrationPatterns = {
+        sensorSelect: [50],
+        temperatureAlert: [100, 50, 100],
+        modeChange: [25, 25, 25],
+        error: [200, 100, 200, 100, 200]
+      };
+      
+      triggerFeedback(type: keyof typeof this.vibrationPatterns): void {
+        if ('vibrate' in navigator) {
+          navigator.vibrate(this.vibrationPatterns[type]);
+        }
+      }
+      
+      // Enhanced sensor selection with haptic feedback
+      onSensorSelect(sensor: Sensor): void {
+        this.triggerFeedback('sensorSelect');
+        
+        // Visual feedback
+        this.animateSensorSelection(sensor);
+        
+        // Audio feedback (optional)
+        if (this.audioEnabled) {
+          this.playSelectionSound();
+        }
+      }
+      
+      // Temperature alert with progressive haptic intensity
+      onTemperatureAlert(severity: 'warning' | 'critical'): void {
+        if (severity === 'critical') {
+          this.triggerFeedback('temperatureAlert');
+        } else {
+          this.triggerFeedback('sensorSelect');
+        }
+      }
+    }
+    ```
+    
+    **Feedback Types**:
+    - **Light tap**: Sensor selection
+    - **Double pulse**: Mode change
+    - **Strong vibration**: Temperature alert
+    - **Pattern vibration**: Multi-sensor events
+  </Tab>
+</Tabs>
+
+## Gamepad Support
+
+### Controller Integration
+
+<AccordionGroup>
+  <Accordion title="Xbox/PlayStation Controllers">
+    **Full controller support**
+    
+    ```typescript
+    // Gamepad controller interface
+    class GamepadController {
+      private gamepad: Gamepad | null = null;
+      private deadzone = 0.1;
+      
+      private buttonMap = {
+        0: 'selectSensor',     // A/Cross
+        1: 'cancelSelection',  // B/Circle
+        2: 'toggleHeatMap',    // X/Square
+        3: 'toggleInfo',       // Y/Triangle
+        4: 'prevPreset',       // LB/L1
+        5: 'nextPreset',       // RB/R1
+        6: 'zoomOut',          // LT/L2
+        7: 'zoomIn',           // RT/R2
+        8: 'openMenu',         // Select/Share
+        9: 'resetView',        // Start/Options
+        12: 'moveUp',          // D-Pad Up
+        13: 'moveDown',        // D-Pad Down
+        14: 'moveLeft',        // D-Pad Left
+        15: 'moveRight'        // D-Pad Right
+      };
+      
+      update(): void {
+        const gamepads = navigator.getGamepads();
+        this.gamepad = gamepads[0];
+        
+        if (!this.gamepad) return;
+        
+        // Handle analog sticks
+        this.handleAnalogSticks();
+        
+        // Handle button presses
+        this.handleButtons();
+      }
+      
+      private handleAnalogSticks(): void {
+        if (!this.gamepad) return;
+        
+        // Left stick: camera movement
+        const leftX = this.applyDeadzone(this.gamepad.axes[0]);
+        const leftY = this.applyDeadzone(this.gamepad.axes[1]);
+        
+        if (Math.abs(leftX) > 0 || Math.abs(leftY) > 0) {
+          this.moveCameraWithStick(leftX, leftY);
+        }
+        
+        // Right stick: camera rotation
+        const rightX = this.applyDeadzone(this.gamepad.axes[2]);
+        const rightY = this.applyDeadzone(this.gamepad.axes[3]);
+        
+        if (Math.abs(rightX) > 0 || Math.abs(rightY) > 0) {
+          this.rotateCameraWithStick(rightX, rightY);
+        }
+      }
+    }
+    ```
+    
+    **Controller Layout**:
+    - **Left Stick**: Move camera position
+    - **Right Stick**: Rotate camera view
+    - **A/X**: Select sensor
+    - **B/Circle**: Cancel/back
+    - **X/Square**: Toggle heat map
+    - **Y/Triangle**: Toggle info panel
+    - **Bumpers**: Previous/next preset
+    - **Triggers**: Zoom in/out
+    - **D-Pad**: Precise movement
+  </Accordion>
+  
+  <Accordion title="Custom Button Mapping">
+    **Configurable controls**
+    
+    ```typescript
+    // Customizable button configuration
+    interface GamepadConfig {
+      buttons: Record<number, string>;
+      stickSensitivity: {
+        movement: number;
+        rotation: number;
+      };
+      triggerDeadzone: number;
+      vibrationEnabled: boolean;
+    }
+    
+    class CustomGamepadController {
+      private config: GamepadConfig;
+      
+      constructor(config?: Partial<GamepadConfig>) {
+        this.config = {
+          buttons: this.getDefaultButtonMap(),
+          stickSensitivity: { movement: 1.0, rotation: 0.8 },
+          triggerDeadzone: 0.1,
+          vibrationEnabled: true,
+          ...config
+        };
+      }
+      
+      remapButton(buttonIndex: number, action: string): void {
+        this.config.buttons[buttonIndex] = action;
+        this.saveConfiguration();
+      }
+      
+      setSensitivity(type: 'movement' | 'rotation', value: number): void {
+        this.config.stickSensitivity[type] = Math.max(0.1, Math.min(2.0, value));
+        this.saveConfiguration();
+      }
+      
+      // Gamepad vibration for feedback
+      vibrate(duration: number, intensity: number): void {
+        if (!this.config.vibrationEnabled || !this.gamepad?.vibrationActuator) return;
+        
+        this.gamepad.vibrationActuator.playEffect('dual-rumble', {
+          duration,
+          strongMagnitude: intensity,
+          weakMagnitude: intensity * 0.5
+        });
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Accessibility Features
+
+### Inclusive Design
+
+<Tabs>
+  <Tab title="Keyboard Navigation">
+    **Full keyboard accessibility**
+    
+    ```typescript
+    // Accessible keyboard controller
+    class AccessibleKeyboardController {
+      private focusedElement: FocusableElement | null = null;
+      private focusableElements: FocusableElement[] = [];
+      
+      constructor() {
+        this.setupFocusManagement();
+        this.setupScreenReaderSupport();
+      }
+      
+      private setupFocusManagement(): void {
+        // Tab navigation through sensors
+        document.addEventListener('keydown', (event) => {
+          switch (event.key) {
+            case 'Tab':
+              event.preventDefault();
+              this.focusNext(event.shiftKey);
+              break;
+            case 'Enter':
+            case ' ':
+              this.activateFocusedElement();
+              break;
+            case 'Escape':
+              this.resetFocus();
+              break;
+          }
+        });
+      }
+      
+      private setupScreenReaderSupport(): void {
+        // ARIA live regions for dynamic updates
+        this.createLiveRegion('sensor-updates', 'polite');
+        this.createLiveRegion('alerts', 'assertive');
+        
+        // Update screen reader with sensor information
+        this.onSensorFocus = (sensor: Sensor) => {
+          const description = `Sensor ${sensor.id}, temperature ${sensor.temperature}°C, 
+                             status ${sensor.status}, zone ${sensor.zone}`;
+          this.announceTo('sensor-updates', description);
+        };
+      }
+    }
+    ```
+    
+    **Accessibility Features**:
+    - Tab navigation through all sensors
+    - Screen reader announcements
+    - High contrast mode support
+    - Keyboard-only operation
+    - Focus indicators
+  </Tab>
+  
+  <Tab title="Visual Accessibility">
+    **Enhanced visual support**
+    
+    ```typescript
+    // Visual accessibility enhancements
+    class VisualAccessibilityController {
+      private highContrastMode = false;
+      private colorBlindMode: 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia' = 'none';
+      private textScale = 1.0;
+      
+      enableHighContrast(): void {
+        this.highContrastMode = true;
+        
+        // Update color scheme
+        this.updateTemperatureColors({
+          cold: '#000080',     // Dark blue
+          normal: '#008000',   // Dark green
+          warm: '#FF8000',     // Orange
+          hot: '#FF0000',      // Red
+          critical: '#800080'  // Purple
+        });
+        
+        // Increase outline thickness
+        this.setSensorOutlineWidth(3);
+        
+        // Add text shadows
+        this.enableTextShadows(true);
+      }
+      
+      setColorBlindMode(mode: typeof this.colorBlindMode): void {
+        this.colorBlindMode = mode;
+        
+        const colorFilters = {
+          deuteranopia: this.createDeuteranopiaFilter(),
+          protanopia: this.createProtanopiaFilter(),
+          tritanopia: this.createTritanopiaFilter()
+        };
+        
+        if (mode !== 'none') {
+          this.applyColorFilter(colorFilters[mode]);
+        } else {
+          this.removeColorFilter();
+        }
+      }
+      
+      setTextScale(scale: number): void {
+        this.textScale = Math.max(0.5, Math.min(3.0, scale));
+        this.updateAllTextElements();
+      }
+    }
+    ```
+    
+    **Visual Options**:
+    - High contrast color schemes
+    - Color blind friendly palettes
+    - Adjustable text size
+    - Outline enhancement
+    - Motion reduction options
+  </Tab>
+  
+  <Tab title="Audio Feedback">
+    **Sound accessibility**
+    
+    ```typescript
+    // Audio feedback system
+    class AudioAccessibilityController {
+      private audioContext: AudioContext;
+      private enabled = false;
+      private volume = 0.5;
+      
+      constructor() {
+        this.audioContext = new AudioContext();
+        this.setupAudioFeedback();
+      }
+      
+      private setupAudioFeedback(): void {
+        // Temperature-based audio cues
+        this.temperatureSounds = {
+          cold: this.createTone(200, 0.1),      // Low frequency
+          normal: this.createTone(440, 0.1),    // A note
+          warm: this.createTone(660, 0.1),      // E note
+          hot: this.createTone(880, 0.1),       // High A
+          critical: this.createAlarmSound()     // Warning tone
+        };
+      }
+      
+      playTemperatureSound(temperature: number): void {
+        if (!this.enabled) return;
+        
+        const soundKey = this.getTemperatureCategory(temperature);
+        const sound = this.temperatureSounds[soundKey];
+        
+        if (sound) {
+          this.playSound(sound);
+        }
+      }
+      
+      announceText(text: string): void {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.volume = this.volume;
+          utterance.rate = 0.9;
+          speechSynthesis.speak(utterance);
+        }
+      }
+    }
+    ```
+    
+    **Audio Features**:
+    - Temperature-based sound cues
+    - Text-to-speech announcements
+    - Spatial audio for sensor location
+    - Alert sounds for critical temperatures
+    - Customizable volume and speech rate
+  </Tab>
+</Tabs>
+
+---
+
+<Note>
+**Practice**: Try the [live demo](http://localhost:3002) to experience these controls firsthand, or explore [thermal modeling](/visualization/thermal-modeling) for advanced heat map interactions.
+</Note> 

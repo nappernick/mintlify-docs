@@ -1,0 +1,831 @@
+---
+title: "Installation Guide"
+description: "Complete installation guide for Blink real-time data center monitoring system with Docker, Kubernetes, and development setups."
+icon: "download"
+---
+
+# Installation Guide
+
+Install and configure Blink for development, testing, or production environments. This guide covers all deployment scenarios from local development to enterprise production clusters.
+
+<Info>
+**System Requirements**: 8GB RAM, 4 CPU cores, 20GB free disk space, Docker 20.10+, and Node.js 18+ for optimal performance.
+</Info>
+
+## Quick Installation
+
+<Tabs>
+  <Tab title="Docker (Recommended)">
+    **Fast setup with all dependencies included**
+    
+    ```bash
+    # Clone the repository
+    git clone https://github.com/your-org/blink.git
+    cd blink
+    
+    # Start all services
+    ./scripts/start.sh
+    
+    # Initialize data center layout
+    bun run init:layout
+    
+    # Verify installation
+    ./scripts/status.sh
+    ```
+    
+    <Check>
+    **Installation complete!** Access the [3D visualization](http://localhost:3002) and [Grafana dashboards](http://localhost:3000) (admin/blink123).
+    </Check>
+  </Tab>
+  
+  <Tab title="Development Setup">
+    **For active development with hot reloading**
+    
+    ```bash
+    # Install Bun runtime
+    curl -fsSL https://bun.sh/install | bash
+    
+    # Start infrastructure only
+    docker-compose up -d redis kafka zookeeper influxdb grafana
+    
+    # Install dependencies and start development
+    bun install
+    bun run dev
+    ```
+    
+    <Tip>
+    Development mode provides detailed logging and automatic restarts for faster iteration.
+    </Tip>
+  </Tab>
+  
+  <Tab title="☸️ Kubernetes">
+    **Production-ready deployment with high availability**
+    
+    ```bash
+    # Add Blink Helm repository
+    helm repo add blink https://charts.blink-datacenter.com
+    helm repo update
+    
+    # Install with production values
+    helm install blink blink/blink-datacenter \
+      --namespace blink --create-namespace \
+      --values production-values.yaml
+    
+    # Verify deployment
+    kubectl get pods -n blink
+    ```
+    
+    <Warning>
+    Kubernetes deployment requires cluster admin permissions and adequate resource allocation (8GB RAM, 4 CPU cores minimum).
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Prerequisites
+
+### System Requirements
+
+<AccordionGroup>
+  <Accordion title="💻 Hardware Requirements" icon="microchip">
+    **Minimum and recommended specifications**
+    
+    | Component | Minimum | Recommended | Production |
+    |-----------|---------|-------------|------------|
+    | **CPU** | 2 cores | 4 cores | 8+ cores |
+    | **RAM** | 4GB | 8GB | 16GB+ |
+    | **Storage** | 10GB | 20GB | 100GB+ SSD |
+    | **Network** | 100Mbps | 1Gbps | 10Gbps |
+    
+    <Info>
+    **Storage Notes**: InfluxDB grows ~1GB per million sensor readings. Plan storage based on sensor count and retention requirements.
+    </Info>
+  </Accordion>
+  
+  <Accordion title="Software Dependencies" icon="gear">
+    **Required and optional software components**
+    
+    **Required:**
+    - **Docker**: 20.10+ with Docker Compose v2
+    - **Git**: For source code management
+    - **curl**: For health checks and API testing
+    
+    **Development:**
+    - **Bun**: Latest version (JavaScript runtime)
+    - **Node.js**: 18+ (for compatibility)
+    - **TypeScript**: 5.0+ (for type checking)
+    
+    **Production:**
+    - **Kubernetes**: 1.25+ (for container orchestration)
+    - **Helm**: 3.10+ (for package management)
+    - **kubectl**: For cluster management
+    
+    ```bash
+    # Verify prerequisites
+    docker --version          # Should be 20.10+
+    docker-compose --version  # Should be v2.0+
+    bun --version             # Should be 1.0+
+    kubectl version           # For Kubernetes setup
+    ```
+  </Accordion>
+  
+  <Accordion title="🌐 Network Configuration" icon="network-wired">
+    **Port requirements and network setup**
+    
+    **Required Ports:**
+    | Service | Port | Protocol | Purpose |
+    |---------|------|----------|---------|
+    | **3D Visualization** | 3002 | HTTP/WS | Interactive interface |
+    | **API Server** | 3001 | HTTP | REST endpoints |
+    | **Grafana** | 3000 | HTTP | Analytics dashboards |
+    | **InfluxDB** | 8086 | HTTP | Time-series database |
+    | **Kafka UI** | 8080 | HTTP | Message queue monitoring |
+    | **Redis** | 6379 | TCP | Caching layer |
+    | **Kafka** | 9092 | TCP | Message streaming |
+    
+    **Firewall Configuration:**
+    ```bash
+    # Allow required ports (Ubuntu/Debian)
+    sudo ufw allow 3000:3002/tcp
+    sudo ufw allow 8080,8086/tcp
+    
+    # For production with external access
+    sudo ufw allow from TRUSTED_IP_RANGE to any port 3000:3002
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Installation Methods
+
+### Method 1: Docker Compose (Recommended)
+
+<Steps>
+  <Step title="Clone Repository">
+    Download the Blink source code and navigate to the project directory.
+    
+    ```bash
+    git clone https://github.com/your-org/blink.git
+    cd blink
+    
+    # Verify repository contents
+    ls -la
+    # Should see: docker-compose.yml, package.json, scripts/, packages/
+    ```
+  </Step>
+  
+  <Step title="Environment Configuration">
+    Configure environment variables for your setup.
+    
+    ```bash
+    # Copy environment template
+    cp .env.example .env
+    
+    # Edit configuration (optional for development)
+    nano .env
+    ```
+    
+    **Key Configuration Options:**
+    ```bash
+    # System Configuration
+    SENSOR_COUNT=203
+    UPDATE_INTERVAL_MS=2000
+    
+    # Database Configuration
+    INFLUX_BUCKET=sensors
+    INFLUX_ORG=blink
+    INFLUX_TOKEN=fedvision-admin-token-2024
+    
+    # Security (production only)
+    JWT_SECRET=your-secret-key
+    API_KEY_SALT=your-salt
+    
+    # Monitoring
+    GRAFANA_ADMIN_PASSWORD=blink123
+    ```
+  </Step>
+  
+  <Step title="Start Infrastructure Services">
+    Launch all required infrastructure components.
+    
+    ```bash
+    # Start all services in background
+    ./scripts/start.sh
+    
+    # Monitor startup progress
+    docker-compose logs -f
+    
+    # Check service health
+    ./scripts/status.sh
+    ```
+    
+    **Expected Output:**
+    ```bash
+    [OK] Redis: Connected and responding
+    [OK] Kafka: All brokers healthy, topics created
+    [OK] InfluxDB: Database connected, bucket accessible
+    [OK] Grafana: Dashboard server ready
+    [OK] Kafka UI: Monitoring interface available
+    ```
+  </Step>
+  
+  <Step title="Initialize Data Center">
+    Set up the virtual data center layout with sensors and zones.
+    
+    ```bash
+    # Initialize layout with default configuration
+    bun run init:layout
+    
+    # Custom sensor configuration
+    SENSOR_COUNT=500 bun run init:layout
+    
+    # Verify layout creation
+    curl http://localhost:3001/api/layout | jq '.metadata'
+    ```
+    
+    <Info>
+    Layout initialization creates 100 server towers and distributes sensors based on realistic data center thermal zones.
+    </Info>
+  </Step>
+  
+  <Step title="Verify Installation">
+    Test all components and access web interfaces.
+    
+    <CardGroup cols={2}>
+      <Card
+        title="3D Visualization"
+        icon="cube"
+        href="http://localhost:3002"
+      >
+        **Test**: Verify real-time sensor updates and 3D controls
+      </Card>
+      
+      <Card
+        title="API Health"
+        icon="stethoscope"
+        href="http://localhost:3001/health"
+      >
+        **Test**: Check system health and service status
+      </Card>
+      
+      <Card
+        title="Grafana Dashboards"
+        icon="chart-line"
+        href="http://localhost:3000"
+      >
+        **Login**: admin / blink123
+      </Card>
+      
+      <Card
+        title="Kafka Monitoring"
+        icon="stream"
+        href="http://localhost:8080"
+      >
+        **Test**: Monitor message queues and throughput
+      </Card>
+    </CardGroup>
+  </Step>
+</Steps>
+
+### Method 2: Development Setup
+
+<Info>
+**Best for**: Active development, debugging, and customization of Blink components.
+</Info>
+
+<Steps>
+  <Step title="Install Bun Runtime">
+    Install the high-performance JavaScript runtime.
+    
+    <Tabs>
+      <Tab title="Linux/macOS">
+        ```bash
+        curl -fsSL https://bun.sh/install | bash
+        
+        # Add to PATH (restart terminal or run)
+        source ~/.bashrc  # or ~/.zshrc
+        
+        # Verify installation
+        bun --version
+        ```
+      </Tab>
+      
+      <Tab title="Windows">
+        ```powershell
+        # Using PowerShell
+        irm bun.sh/install.ps1 | iex
+        
+        # Or using Scoop
+        scoop install bun
+        
+        # Verify installation
+        bun --version
+        ```
+      </Tab>
+      
+      <Tab title="Docker Alternative">
+        ```bash
+        # If unable to install Bun directly
+        alias bun='docker run --rm -v $(pwd):/app -w /app oven/bun'
+        
+        # Test with
+        bun --version
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Start Infrastructure">
+    Launch only the required infrastructure services.
+    
+    ```bash
+    # Start infrastructure services only
+    docker-compose up -d redis kafka zookeeper influxdb grafana kafka-ui
+    
+    # Wait for services to be ready
+    while ! curl -s http://localhost:8086/health > /dev/null; do
+      echo "Waiting for InfluxDB..."
+      sleep 5
+    done
+    
+    echo "Infrastructure ready!"
+    ```
+  </Step>
+  
+  <Step title="Install Dependencies">
+    Install project dependencies and set up development environment.
+    
+    ```bash
+    # Install all workspace dependencies
+    bun install
+    
+    # Verify workspace structure
+    bun run workspaces list
+    
+    # Run type checking
+    bun run typecheck
+    ```
+  </Step>
+  
+  <Step title="Start Development Services">
+    Run services in development mode with hot reloading.
+    
+    ```bash
+    # Start all services in development mode
+    bun run dev
+    
+    # Or start individual services
+    cd packages/api && bun run dev &
+    cd packages/visualization && bun run dev &
+    cd packages/simulator && bun run dev &
+    ```
+    
+    <Tip>
+    Development mode provides detailed logging, hot reloading, and source maps for easier debugging.
+    </Tip>
+  </Step>
+</Steps>
+
+### Method 3: Kubernetes Production
+
+<Warning>
+**Production Deployment**: This setup requires Kubernetes cluster admin permissions and production-grade infrastructure.
+</Warning>
+
+<Steps>
+  <Step title="Cluster Preparation">
+    Ensure your Kubernetes cluster meets production requirements.
+    
+    ```bash
+    # Verify cluster access
+    kubectl cluster-info
+    
+    # Check available resources
+    kubectl top nodes
+    
+    # Create namespace
+    kubectl create namespace blink
+    ```
+    
+    **Minimum Cluster Requirements:**
+    - 3+ worker nodes
+    - 16GB RAM total
+    - 8+ CPU cores
+    - 100GB+ storage
+    - LoadBalancer support
+  </Step>
+  
+  <Step title="Add Helm Repository">
+    Configure the Blink Helm chart repository.
+    
+    ```bash
+    # Add repository
+    helm repo add blink https://charts.blink-datacenter.com
+    helm repo update
+    
+    # Verify chart availability
+    helm search repo blink
+    ```
+  </Step>
+  
+  <Step title="Configure Values">
+    Create production configuration values.
+    
+    ```yaml
+    # production-values.yaml
+    global:
+      storageClass: "fast-ssd"
+      
+    api:
+      replicas: 3
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "500m"
+          
+    influxdb:
+      persistence:
+        enabled: true
+        size: 100Gi
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "1000m"
+          
+    kafka:
+      replicas: 3
+      persistence:
+        size: 20Gi
+      zookeeper:
+        replicas: 3
+        
+    redis:
+      auth:
+        enabled: true
+        password: "secure-redis-password"
+      master:
+        persistence:
+          size: 10Gi
+          
+    grafana:
+      persistence:
+        enabled: true
+        size: 10Gi
+      adminPassword: "secure-admin-password"
+      
+    ingress:
+      enabled: true
+      className: "nginx"
+      hosts:
+        - host: blink.yourdomain.com
+          paths:
+            - path: /
+              pathType: Prefix
+    ```
+  </Step>
+  
+  <Step title="Deploy Application">
+    Install Blink using Helm with production configuration.
+    
+    ```bash
+    # Deploy with production values
+    helm install blink blink/blink-datacenter \
+      --namespace blink \
+      --values production-values.yaml \
+      --timeout 10m
+    
+    # Monitor deployment
+    kubectl get pods -n blink -w
+    
+    # Check service status
+    kubectl get svc -n blink
+    ```
+  </Step>
+  
+  <Step title="Verify Production Deployment">
+    Validate the production installation.
+    
+    ```bash
+    # Check all pods are running
+    kubectl get pods -n blink
+    
+    # Verify services are accessible
+    kubectl port-forward -n blink svc/blink-api 3001:3001 &
+    curl http://localhost:3001/health
+    
+    # Access through ingress (if configured)
+    curl https://blink.yourdomain.com/health
+    ```
+  </Step>
+</Steps>
+
+## Configuration Options
+
+### Environment Variables
+
+<AccordionGroup>
+  <Accordion title="Core System Settings" icon="gear">
+    **Primary configuration for system behavior**
+    
+    ```bash
+    # Sensor Simulation
+    SENSOR_COUNT=203                    # Number of temperature sensors
+    UPDATE_INTERVAL_MS=2000             # Sensor update frequency
+    BATCH_SIZE=50                       # Kafka batch size
+    
+    # System Performance
+    MAX_WEBSOCKET_CONNECTIONS=1000      # WebSocket connection limit
+    API_RATE_LIMIT=1000                 # Requests per hour per IP
+    CACHE_TTL_SECONDS=300               # Redis cache expiration
+    
+    # Data Retention
+    INFLUX_RETENTION_DAYS=90            # Time-series data retention
+    KAFKA_RETENTION_HOURS=24            # Message retention
+    REDIS_MAX_MEMORY=256mb              # Redis memory limit
+    ```
+  </Accordion>
+  
+  <Accordion title="🔒 Security Configuration" icon="shield">
+    **Authentication and security settings**
+    
+    ```bash
+    # Authentication
+    JWT_SECRET=your-256-bit-secret      # JWT signing key
+    JWT_EXPIRY=24h                      # Token expiration
+    API_KEY_SALT=random-salt-string     # API key hashing salt
+    
+    # Security Features
+    ENABLE_CORS=true                    # Cross-origin requests
+    CORS_ORIGINS=http://localhost:3002  # Allowed origins
+    ENABLE_RATE_LIMITING=true           # API rate limiting
+    ENABLE_HTTPS=false                  # HTTPS enforcement
+    
+    # Database Security
+    INFLUX_TOKEN=admin-token-2024       # InfluxDB access token
+    REDIS_PASSWORD=redis-password       # Redis authentication
+    ```
+  </Accordion>
+  
+  <Accordion title="Monitoring & Logging" icon="chart-line">
+    **Observability and debugging configuration**
+    
+    ```bash
+    # Logging
+    LOG_LEVEL=info                      # debug, info, warn, error
+    LOG_FORMAT=json                     # json or text
+    ENABLE_REQUEST_LOGGING=true         # HTTP request logging
+    
+    # Metrics
+    ENABLE_PROMETHEUS=true              # Prometheus metrics
+    METRICS_PORT=9090                   # Metrics endpoint port
+    HEALTH_CHECK_INTERVAL=30            # Health check frequency
+    
+    # Grafana
+    GRAFANA_ADMIN_USER=admin            # Admin username
+    GRAFANA_ADMIN_PASSWORD=blink123     # Admin password
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Advanced Configuration
+
+<Tabs>
+  <Tab title="📈 Performance Tuning">
+    **Optimize for high-throughput scenarios**
+    
+    ```yaml
+    # docker-compose.override.yml
+    version: '3.8'
+    services:
+      kafka:
+        environment:
+          KAFKA_NUM_PARTITIONS: 16
+          KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+          KAFKA_LOG_RETENTION_HOURS: 24
+          KAFKA_LOG_SEGMENT_BYTES: 1073741824
+          
+      influxdb:
+        environment:
+          INFLUXDB_DATA_MAX_VALUES_PER_TAG: 1000000
+          INFLUXDB_DATA_CACHE_MAX_MEMORY_SIZE: 1073741824
+          INFLUXDB_DATA_CACHE_SNAPSHOT_MEMORY_SIZE: 26214400
+          
+      redis:
+        command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+        
+    # For high sensor counts (1000+)
+    environment:
+      SENSOR_COUNT: 1000
+      UPDATE_INTERVAL_MS: 1000
+      BATCH_SIZE: 100
+      MAX_WEBSOCKET_CONNECTIONS: 5000
+    ```
+  </Tab>
+  
+  <Tab title="Development Overrides">
+    **Development-specific configuration**
+    
+    ```bash
+    # .env.development
+    NODE_ENV=development
+    LOG_LEVEL=debug
+    ENABLE_HOT_RELOAD=true
+    
+    # Disable resource-intensive features
+    ENABLE_METRICS=false
+    KAFKA_REPLICATION_FACTOR=1
+    
+    # Fast startup settings
+    SENSOR_COUNT=50
+    UPDATE_INTERVAL_MS=5000
+    SKIP_LAYOUT_INIT=false
+    
+    # Development tools
+    ENABLE_GRAPHQL_PLAYGROUND=true
+    ENABLE_SWAGGER_UI=true
+    CORS_ORIGINS=*
+    ```
+  </Tab>
+  
+  <Tab title="🏭 Production Hardening">
+    **Security and reliability for production**
+    
+    ```bash
+    # .env.production
+    NODE_ENV=production
+    LOG_LEVEL=warn
+    
+    # Security
+    ENABLE_HTTPS=true
+    CORS_ORIGINS=https://blink.yourdomain.com
+    ENABLE_RATE_LIMITING=true
+    JWT_EXPIRY=1h
+    
+    # Performance
+    API_RATE_LIMIT=10000
+    MAX_WEBSOCKET_CONNECTIONS=10000
+    CACHE_TTL_SECONDS=3600
+    
+    # Reliability
+    HEALTH_CHECK_INTERVAL=10
+    KAFKA_REPLICATION_FACTOR=3
+    REDIS_PERSISTENCE=true
+    INFLUX_RETENTION_DAYS=365
+    ```
+  </Tab>
+</Tabs>
+
+## Troubleshooting Installation
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Docker Issues" icon="docker">
+    **Docker-related installation problems**
+    
+    **Problem**: Services fail to start
+    ```bash
+    # Check Docker daemon
+    sudo systemctl status docker
+    
+    # Restart Docker if needed
+    sudo systemctl restart docker
+    
+    # Clean up containers and networks
+    docker-compose down --volumes --remove-orphans
+    docker system prune -f
+    
+    # Restart with fresh state
+    ./scripts/start.sh
+    ```
+    
+    **Problem**: Port conflicts
+    ```bash
+    # Find processes using required ports
+    sudo lsof -i :3000,:3001,:3002,:6379,:8086,:9092
+    
+    # Kill conflicting processes
+    sudo pkill -f "process-name"
+    
+    # Or change ports in docker-compose.yml
+    ```
+    
+    **Problem**: Insufficient resources
+    ```bash
+    # Check available resources
+    docker system df
+    docker stats
+    
+    # Increase Docker memory limit (Docker Desktop)
+    # Settings > Resources > Memory > 8GB+
+    ```
+  </Accordion>
+  
+  <Accordion title="🌐 Network Connectivity" icon="wifi">
+    **Network and connectivity issues**
+    
+    **Problem**: Cannot access web interfaces
+    ```bash
+    # Check if services are listening
+    netstat -tlnp | grep -E ':(3000|3001|3002|8080|8086)'
+    
+    # Test from inside containers
+    docker-compose exec api curl http://localhost:3001/health
+    
+    # Check firewall settings
+    sudo ufw status
+    ```
+    
+    **Problem**: WebSocket connections fail
+    ```bash
+    # Test WebSocket connectivity
+    websocat ws://localhost:3002
+    
+    # Check proxy/load balancer settings
+    curl -H "Upgrade: websocket" \
+         -H "Connection: Upgrade" \
+         http://localhost:3002
+    
+    # Verify WebSocket server logs
+    docker-compose logs websocket-server
+    ```
+  </Accordion>
+  
+  <Accordion title="Data Pipeline Issues" icon="chart-line">
+    **Problems with data flow and processing**
+    
+    **Problem**: No sensor data visible
+    ```bash
+    # Check simulator is running
+    docker-compose logs simulator
+    
+    # Verify Kafka topics and messages
+    docker-compose exec kafka kafka-topics --list --bootstrap-server localhost:9092
+    docker-compose exec kafka kafka-console-consumer \
+      --bootstrap-server localhost:9092 \
+      --topic sensor-readings --from-beginning --max-messages 10
+    
+    # Check InfluxDB data
+    curl "http://localhost:8086/api/v2/query" \
+      -H "Authorization: Token fedvision-admin-token-2024" \
+      -H "Content-Type: application/vnd.flux" \
+      --data 'from(bucket:"sensors") |> range(start:-1h) |> limit(n:10)'
+    ```
+    
+    **Problem**: High latency or slow updates
+    ```bash
+    # Monitor system resources
+    docker stats
+    
+    # Check Kafka consumer lag
+    docker-compose exec kafka kafka-consumer-groups \
+      --bootstrap-server localhost:9092 --describe --all-groups
+    
+    # Verify Redis performance
+    docker-compose exec redis redis-cli info stats
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Getting Help
+
+<CardGroup cols={2}>
+  <Card
+    title="📚 Documentation"
+    icon="book"
+    href="/architecture/overview"
+  >
+    Comprehensive system architecture and component guides
+  </Card>
+  
+  <Card
+    title="🐛 GitHub Issues"
+    icon="bug"
+    href="https://github.com/your-org/blink/issues"
+  >
+    Report bugs, request features, or get community support
+  </Card>
+  
+  <Card
+    title="💬 Discord Community"
+    icon="discord"
+    href="https://discord.gg/blink"
+  >
+    Real-time help from developers and community members
+  </Card>
+  
+  <Card
+    title="System Status"
+    icon="circle-check"
+    href="/system-status"
+  >
+    Check if installation issues are related to known problems
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Installation successful?** Continue with the [Quick Start guide](/quickstart) to explore Blink's features, or dive into the [API documentation](/api-reference/introduction) to start building integrations.
+</Note> 

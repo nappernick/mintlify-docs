@@ -1,0 +1,956 @@
+---
+title: "Thermal Modeling"
+description: "Advanced thermal modeling algorithms for realistic data center heat map generation, interpolation techniques, and physics-based visualization."
+icon: "thermometer"
+---
+
+# Thermal Modeling
+
+Blink's **Thermal Modeling Engine** creates realistic heat maps using advanced interpolation algorithms, physics-based calculations, and real-time data fusion. The system accurately represents thermal dynamics in your data center environment.
+
+## Modeling Overview
+
+<CardGroup cols={2}>
+  <Card title="Temperature Interpolation" icon="chart-scatter">
+    **Smooth heat maps from discrete sensors**
+    - Delaunay triangulation
+    - Inverse distance weighting
+    - Kriging interpolation
+    - Radial basis functions
+  </Card>
+  
+  <Card title="🌪️ Airflow Simulation" icon="wind">
+    **Physics-based air movement**
+    - Computational fluid dynamics
+    - Hot/cold aisle modeling
+    - Circulation patterns
+    - Pressure differentials
+  </Card>
+  
+  <Card title="📈 Thermal Dynamics" icon="chart-line">
+    **Time-based heat transfer**
+    - Transient analysis
+    - Heat conduction modeling
+    - Thermal mass calculations
+    - Predictive algorithms
+  </Card>
+  
+  <Card title="Accuracy Validation" icon="bullseye">
+    **Model verification**
+    - Cross-validation testing
+    - Error analysis
+    - Calibration algorithms
+    - Real vs. predicted comparison
+  </Card>
+</CardGroup>
+
+## Interpolation Algorithms
+
+### Delaunay Triangulation
+
+<Tabs>
+  <Tab title="Algorithm Overview">
+    **Optimal triangular mesh generation**
+    
+    ```mermaid
+    graph TD
+        A[Sensor Points] --> B[Delaunay Triangulation]
+        B --> C[Triangle Mesh]
+        C --> D[Barycentric Interpolation]
+        D --> E[Smooth Heat Map]
+        
+        F[Boundary Detection] --> B
+        G[Constraint Handling] --> B
+    ```
+    
+    **Benefits**:
+    - Natural neighbor interpolation
+    - Avoids thin triangles
+    - Handles irregular sensor distributions
+    - Computationally efficient for real-time use
+    
+    **Use Cases**:
+    - Primary heat map generation
+    - Contour line creation
+    - Gradient calculations
+    - Hot spot identification
+  </Tab>
+  
+  <Tab title="Implementation">
+    **TypeScript/D3.js Implementation**
+    
+    ```typescript
+    // Delaunay-based thermal interpolation
+    import * as d3 from 'd3';
+    
+    class DelaunayThermalInterpolator {
+      private delaunay: d3.Delaunay<[number, number]>;
+      private voronoi: d3.Voronoi<[number, number]>;
+      private sensorPoints: [number, number][];
+      private temperatures: number[];
+      
+      constructor(sensors: SensorReading[]) {
+        this.sensorPoints = sensors.map(s => [s.x, s.y] as [number, number]);
+        this.temperatures = sensors.map(s => s.temperature);
+        
+        // Create Delaunay triangulation
+        this.delaunay = d3.Delaunay.from(this.sensorPoints);
+        this.voronoi = this.delaunay.voronoi([0, 0, 100, 50]); // Data center bounds
+      }
+      
+      interpolateTemperature(x: number, y: number): number {
+        // Find the triangle containing the point
+        const triangleIndex = this.delaunay.find(x, y);
+        
+        if (triangleIndex === -1) {
+          // Point outside convex hull - use nearest neighbor
+          return this.nearestNeighborInterpolation(x, y);
+        }
+        
+        // Get triangle vertices
+        const triangle = this.getTriangleVertices(triangleIndex);
+        
+        // Calculate barycentric coordinates
+        const barycentric = this.calculateBarycentricCoordinates(
+          [x, y], triangle.vertices
+        );
+        
+        // Interpolate temperature using barycentric weights
+        return (
+          barycentric.w1 * triangle.temperatures[0] +
+          barycentric.w2 * triangle.temperatures[1] +
+          barycentric.w3 * triangle.temperatures[2]
+        );
+      }
+      
+      generateHeatMapGrid(resolution: number): number[][] {
+        const grid: number[][] = [];
+        const stepX = 100 / resolution;
+        const stepY = 50 / resolution;
+        
+        for (let i = 0; i < resolution; i++) {
+          grid[i] = [];
+          for (let j = 0; j < resolution; j++) {
+            const x = i * stepX;
+            const y = j * stepY;
+            grid[i][j] = this.interpolateTemperature(x, y);
+          }
+        }
+        
+        return grid;
+      }
+      
+      private calculateBarycentricCoordinates(
+        point: [number, number], 
+        triangle: [[number, number], [number, number], [number, number]]
+      ): { w1: number; w2: number; w3: number } {
+        const [p, p1, p2, p3] = [point, ...triangle];
+        
+        const denom = (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1]);
+        const w1 = ((p2[1] - p3[1]) * (p[0] - p3[0]) + (p3[0] - p2[0]) * (p[1] - p3[1])) / denom;
+        const w2 = ((p3[1] - p1[1]) * (p[0] - p3[0]) + (p1[0] - p3[0]) * (p[1] - p3[1])) / denom;
+        const w3 = 1 - w1 - w2;
+        
+        return { w1, w2, w3 };
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Performance Optimization">
+    **Efficient computation techniques**
+    
+    ```typescript
+    // Optimized Delaunay implementation
+    class OptimizedDelaunayInterpolator {
+      private triangleCache = new Map<string, number>();
+      private gridCache = new Map<string, number[][]>();
+      private lastUpdate = 0;
+      private cacheTimeout = 5000; // 5 seconds
+      
+      // Incremental updates for streaming data
+      updateSensorReading(sensorId: string, newReading: SensorReading): void {
+        const sensorIndex = this.getSensorIndex(sensorId);
+        if (sensorIndex === -1) return;
+        
+        // Update temperature
+        this.temperatures[sensorIndex] = newReading.temperature;
+        
+        // Invalidate affected cache entries
+        this.invalidateTriangleCache(sensorIndex);
+        
+        // Mark for re-triangulation if sensor moved
+        if (this.sensorMoved(sensorIndex, newReading)) {
+          this.scheduleRetriangulation();
+        }
+      }
+      
+      // Spatial indexing for faster queries
+      private buildSpatialIndex(): void {
+        this.spatialIndex = new QuadTree(0, 0, 100, 50);
+        
+        this.sensorPoints.forEach((point, index) => {
+          this.spatialIndex.insert({
+            x: point[0],
+            y: point[1],
+            index,
+            temperature: this.temperatures[index]
+          });
+        });
+      }
+      
+      // Level of detail for different zoom levels
+      adaptToZoomLevel(zoomLevel: number): void {
+        let resolution: number;
+        
+        if (zoomLevel > 5) {
+          resolution = 100; // High detail
+        } else if (zoomLevel > 2) {
+          resolution = 50;  // Medium detail
+        } else {
+          resolution = 25;  // Low detail
+        }
+        
+        this.setGridResolution(resolution);
+      }
+      
+      // Parallel processing for large grids
+      async generateHeatMapParallel(resolution: number): Promise<number[][]> {
+        const numWorkers = navigator.hardwareConcurrency || 4;
+        const chunkSize = Math.ceil(resolution / numWorkers);
+        
+        const promises: Promise<number[]>[] = [];
+        
+        for (let i = 0; i < numWorkers; i++) {
+          const startRow = i * chunkSize;
+          const endRow = Math.min(startRow + chunkSize, resolution);
+          
+          promises.push(this.processGridChunk(startRow, endRow, resolution));
+        }
+        
+        const chunks = await Promise.all(promises);
+        return chunks.flat();
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Alternative Interpolation Methods
+
+<AccordionGroup>
+  <Accordion title="Inverse Distance Weighting (IDW)">
+    **Simple and robust interpolation**
+    
+    ```typescript
+    // IDW implementation for thermal interpolation
+    class IDWInterpolator {
+      constructor(
+        private sensors: SensorReading[],
+        private power: number = 2,
+        private searchRadius: number = 20
+      ) {}
+      
+      interpolate(x: number, y: number): number {
+        const nearbySenosrs = this.findNearbySenosrs(x, y);
+        
+        if (nearbySenosrs.length === 0) {
+          return this.getDefaultTemperature();
+        }
+        
+        let weightedSum = 0;
+        let weightSum = 0;
+        
+        for (const sensor of nearbySenosrs) {
+          const distance = Math.sqrt(
+            Math.pow(x - sensor.x, 2) + Math.pow(y - sensor.y, 2)
+          );
+          
+          if (distance < 0.001) {
+            // Point coincides with sensor
+            return sensor.temperature;
+          }
+          
+          const weight = 1 / Math.pow(distance, this.power);
+          weightedSum += weight * sensor.temperature;
+          weightSum += weight;
+        }
+        
+        return weightedSum / weightSum;
+      }
+      
+      private findNearbySenosrs(x: number, y: number): SensorReading[] {
+        return this.sensors.filter(sensor => {
+          const distance = Math.sqrt(
+            Math.pow(x - sensor.x, 2) + Math.pow(y - sensor.y, 2)
+          );
+          return distance <= this.searchRadius;
+        });
+      }
+    }
+    ```
+    
+    **Characteristics**:
+    - Simple to implement
+    - Good for sparse data
+    - Preserves local extrema
+    - Computationally inexpensive
+    
+    **Best for**: Quick approximations, fallback interpolation
+  </Accordion>
+  
+  <Accordion title="Kriging Interpolation">
+    **Statistical approach with uncertainty estimation**
+    
+    ```typescript
+    // Kriging interpolator with uncertainty quantification
+    class KrigingInterpolator {
+      private variogramModel: VariogramModel;
+      private covarianceMatrix: number[][];
+      
+      constructor(sensors: SensorReading[]) {
+        this.sensors = sensors;
+        this.fitVariogram();
+        this.buildCovarianceMatrix();
+      }
+      
+      interpolateWithUncertainty(x: number, y: number): {
+        temperature: number;
+        variance: number;
+        confidence: number;
+      } {
+        const weights = this.calculateKrigingWeights(x, y);
+        
+        let temperature = 0;
+        let variance = 0;
+        
+        // Calculate interpolated value
+        for (let i = 0; i < this.sensors.length; i++) {
+          temperature += weights[i] * this.sensors[i].temperature;
+        }
+        
+        // Calculate interpolation variance
+        variance = this.calculateInterpolationVariance(x, y, weights);
+        
+        return {
+          temperature,
+          variance,
+          confidence: this.varianceToConfidence(variance)
+        };
+      }
+      
+      private fitVariogram(): void {
+        // Fit variogram model to sensor data
+        const distances: number[] = [];
+        const semivariances: number[] = [];
+        
+        for (let i = 0; i < this.sensors.length; i++) {
+          for (let j = i + 1; j < this.sensors.length; j++) {
+            const distance = this.calculateDistance(this.sensors[i], this.sensors[j]);
+            const semivariance = 0.5 * Math.pow(
+              this.sensors[i].temperature - this.sensors[j].temperature, 2
+            );
+            
+            distances.push(distance);
+            semivariances.push(semivariance);
+          }
+        }
+        
+        // Fit exponential variogram model
+        this.variogramModel = this.fitExponentialModel(distances, semivariances);
+      }
+    }
+    ```
+    
+    **Advantages**:
+    - Provides uncertainty estimates
+    - Optimal interpolation weights
+    - Handles anisotropic spatial correlation
+    - Best linear unbiased estimator
+    
+    **Use cases**: Quality assessment, sensor placement optimization, uncertainty visualization
+  </Accordion>
+  
+  <Accordion title="Radial Basis Functions (RBF)">
+    **Smooth interpolation with exact fit**
+    
+    ```typescript
+    // RBF interpolator with multiple basis functions
+    class RBFInterpolator {
+      private weights: number[];
+      private basisFunction: (r: number) => number;
+      
+      constructor(
+        private sensors: SensorReading[],
+        basisType: 'gaussian' | 'multiquadric' | 'thinPlateSpline' = 'gaussian',
+        private shapeParameter: number = 1.0
+      ) {
+        this.basisFunction = this.getBasisFunction(basisType);
+        this.calculateWeights();
+      }
+      
+      private getBasisFunction(type: string): (r: number) => number {
+        switch (type) {
+          case 'gaussian':
+            return (r: number) => Math.exp(-Math.pow(this.shapeParameter * r, 2));
+          
+          case 'multiquadric':
+            return (r: number) => Math.sqrt(1 + Math.pow(this.shapeParameter * r, 2));
+          
+          case 'thinPlateSpline':
+            return (r: number) => r === 0 ? 0 : Math.pow(r, 2) * Math.log(r);
+          
+          default:
+            throw new Error(`Unknown basis function: ${type}`);
+        }
+      }
+      
+      interpolate(x: number, y: number): number {
+        let result = 0;
+        
+        for (let i = 0; i < this.sensors.length; i++) {
+          const distance = Math.sqrt(
+            Math.pow(x - this.sensors[i].x, 2) + 
+            Math.pow(y - this.sensors[i].y, 2)
+          );
+          
+          result += this.weights[i] * this.basisFunction(distance);
+        }
+        
+        return result;
+      }
+      
+      private calculateWeights(): void {
+        const n = this.sensors.length;
+        const A: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
+        const b: number[] = Array(n).fill(0);
+        
+        // Build the system matrix
+        for (let i = 0; i < n; i++) {
+          for (let j = 0; j < n; j++) {
+            const distance = this.calculateDistance(this.sensors[i], this.sensors[j]);
+            A[i][j] = this.basisFunction(distance);
+          }
+          b[i] = this.sensors[i].temperature;
+        }
+        
+        // Solve the linear system
+        this.weights = this.solveLinearSystem(A, b);
+      }
+    }
+    ```
+    
+    **Features**:
+    - Exact interpolation at sensor points
+    - Smooth derivatives
+    - Flexible basis function choice
+    - Good for scattered data
+    
+    **Applications**: Smooth visualization, gradient calculations, derivative analysis
+  </Accordion>
+</AccordionGroup>
+
+## Physics-Based Modeling
+
+### Airflow Simulation
+
+<Tabs>
+  <Tab title="Computational Fluid Dynamics">
+    **Simplified CFD for real-time visualization**
+    
+    ```typescript
+    // Simplified CFD simulation for data center airflow
+    class DataCenterCFD {
+      private grid: FluidCell[][];
+      private velocity: VelocityField;
+      private pressure: PressureField;
+      
+      constructor(
+        private width: number,
+        private height: number,
+        private resolution: number
+      ) {
+        this.initializeGrid();
+        this.setupBoundaryConditions();
+      }
+      
+      simulate(timestep: number, iterations: number = 10): void {
+        for (let iter = 0; iter < iterations; iter++) {
+          this.advection(timestep);
+          this.diffusion(timestep);
+          this.projection(); // Enforce incompressibility
+          this.updateTemperature(timestep);
+        }
+      }
+      
+      private advection(dt: number): void {
+        // Move velocity field by itself
+        const newVelocity = this.velocity.clone();
+        
+        for (let i = 1; i < this.resolution - 1; i++) {
+          for (let j = 1; j < this.resolution - 1; j++) {
+            const x = i - dt * this.velocity.u[i][j];
+            const y = j - dt * this.velocity.v[i][j];
+            
+            newVelocity.u[i][j] = this.bilinearInterpolate(this.velocity.u, x, y);
+            newVelocity.v[i][j] = this.bilinearInterpolate(this.velocity.v, x, y);
+          }
+        }
+        
+        this.velocity = newVelocity;
+      }
+      
+      private projection(): void {
+        // Make velocity field incompressible (divergence-free)
+        const div = Array(this.resolution).fill(null)
+          .map(() => Array(this.resolution).fill(0));
+        const p = Array(this.resolution).fill(null)
+          .map(() => Array(this.resolution).fill(0));
+        
+        // Calculate divergence
+        for (let i = 1; i < this.resolution - 1; i++) {
+          for (let j = 1; j < this.resolution - 1; j++) {
+            div[i][j] = -0.5 * (
+              this.velocity.u[i + 1][j] - this.velocity.u[i - 1][j] +
+              this.velocity.v[i][j + 1] - this.velocity.v[i][j - 1]
+            ) / this.resolution;
+          }
+        }
+        
+        // Solve Poisson equation for pressure
+        this.solvePressure(p, div);
+        
+        // Subtract pressure gradient from velocity
+        for (let i = 1; i < this.resolution - 1; i++) {
+          for (let j = 1; j < this.resolution - 1; j++) {
+            this.velocity.u[i][j] -= 0.5 * this.resolution * (p[i + 1][j] - p[i - 1][j]);
+            this.velocity.v[i][j] -= 0.5 * this.resolution * (p[i][j + 1] - p[i][j - 1]);
+          }
+        }
+      }
+      
+      getAirflowVisualization(): FlowVector[] {
+        const vectors: FlowVector[] = [];
+        const step = 4; // Subsample for visualization
+        
+        for (let i = 0; i < this.resolution; i += step) {
+          for (let j = 0; j < this.resolution; j += step) {
+            const magnitude = Math.sqrt(
+              Math.pow(this.velocity.u[i][j], 2) + 
+              Math.pow(this.velocity.v[i][j], 2)
+            );
+            
+            if (magnitude > 0.01) { // Filter out very small vectors
+              vectors.push({
+                x: (i / this.resolution) * this.width,
+                y: (j / this.resolution) * this.height,
+                u: this.velocity.u[i][j],
+                v: this.velocity.v[i][j],
+                magnitude,
+                temperature: this.grid[i][j].temperature
+              });
+            }
+          }
+        }
+        
+        return vectors;
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Hot/Cold Aisle Modeling">
+    **Data center specific thermal patterns**
+    
+    ```typescript
+    // Hot/cold aisle thermal modeling
+    class AisleThermalModel {
+      private aisles: Aisle[] = [];
+      private servers: Server[] = [];
+      
+      constructor(layout: DataCenterLayout) {
+        this.parseLayout(layout);
+        this.calculateThermalZones();
+      }
+      
+      private parseLayout(layout: DataCenterLayout): void {
+        // Identify hot and cold aisles from layout
+        layout.racks.forEach(rack => {
+          const aisle = this.determineAisle(rack);
+          this.aisles.push(aisle);
+          
+          rack.servers.forEach(server => {
+            this.servers.push({
+              ...server,
+              aisleType: aisle.type,
+              heatGeneration: this.calculateHeatGeneration(server),
+              airflowRequirement: this.calculateAirflowRequirement(server)
+            });
+          });
+        });
+      }
+      
+      simulateAirflow(): AirflowPattern {
+        const pattern: AirflowPattern = {
+          supply: [],
+          return: [],
+          mixing: []
+        };
+        
+        // Cold aisle supply air
+        this.aisles.filter(a => a.type === 'cold').forEach(aisle => {
+          const supplyFlow = this.calculateSupplyAirflow(aisle);
+          pattern.supply.push(supplyFlow);
+        });
+        
+        // Hot aisle return air
+        this.aisles.filter(a => a.type === 'hot').forEach(aisle => {
+          const returnFlow = this.calculateReturnAirflow(aisle);
+          pattern.return.push(returnFlow);
+        });
+        
+        // Mixing zones
+        const mixingZones = this.calculateMixingZones();
+        pattern.mixing.push(...mixingZones);
+        
+        return pattern;
+      }
+      
+      private calculateSupplyAirflow(aisle: Aisle): FlowVector[] {
+        const vectors: FlowVector[] = [];
+        const supplyTemp = 18; // Cold aisle supply temperature
+        
+        // CRAC unit locations
+        aisle.cracUnits.forEach(crac => {
+          const flowRate = crac.capacity; // CFM
+          const direction = this.getAisleDirection(aisle);
+          
+          // Generate flow vectors along the aisle
+          for (let i = 0; i < aisle.length; i += 2) {
+            vectors.push({
+              x: aisle.startX + i * direction.x,
+              y: aisle.startY + i * direction.y,
+              u: direction.x * flowRate * 0.1,
+              v: direction.y * flowRate * 0.1,
+              magnitude: flowRate * 0.1,
+              temperature: supplyTemp
+            });
+          }
+        });
+        
+        return vectors;
+      }
+      
+      private calculateReturnAirflow(aisle: Aisle): FlowVector[] {
+        const vectors: FlowVector[] = [];
+        
+        // Calculate heat load in hot aisle
+        const totalHeatLoad = this.calculateAisleHeatLoad(aisle);
+        const returnTemp = this.calculateReturnTemperature(totalHeatLoad);
+        
+        // Return airflow pattern
+        const direction = this.getAisleDirection(aisle, true); // Reverse direction
+        
+        for (let i = 0; i < aisle.length; i += 2) {
+          const localHeatLoad = this.getLocalHeatLoad(aisle, i);
+          const flowVelocity = this.calculateReturnVelocity(localHeatLoad);
+          
+          vectors.push({
+            x: aisle.startX + i * direction.x,
+            y: aisle.startY + i * direction.y,
+            u: direction.x * flowVelocity,
+            v: direction.y * flowVelocity,
+            magnitude: flowVelocity,
+            temperature: returnTemp
+          });
+        }
+        
+        return vectors;
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Heat Transfer Modeling">
+    **Transient thermal analysis**
+    
+    ```typescript
+    // Heat transfer and thermal mass modeling
+    class HeatTransferModel {
+      private thermalMass: ThermalMassGrid;
+      private heatSources: HeatSource[];
+      private ambientTemperature: number = 20;
+      
+      constructor(layout: DataCenterLayout) {
+        this.initializeThermalMass(layout);
+        this.identifyHeatSources(layout);
+      }
+      
+      simulateHeatTransfer(deltaTime: number): TemperatureField {
+        const newTemperatures = this.thermalMass.temperatures.map(row => [...row]);
+        
+        for (let i = 1; i < this.thermalMass.width - 1; i++) {
+          for (let j = 1; j < this.thermalMass.height - 1; j++) {
+            const cell = this.thermalMass.cells[i][j];
+            
+            // Heat conduction (Fourier's law)
+            const conduction = this.calculateConduction(i, j);
+            
+            // Heat generation from servers
+            const generation = this.calculateHeatGeneration(i, j);
+            
+            // Heat removal by airflow
+            const removal = this.calculateHeatRemoval(i, j);
+            
+            // Temperature change rate
+            const dTdt = (conduction + generation - removal) / cell.thermalCapacity;
+            
+            newTemperatures[i][j] += dTdt * deltaTime;
+          }
+        }
+        
+        this.thermalMass.temperatures = newTemperatures;
+        return this.getTemperatureField();
+      }
+      
+      private calculateConduction(x: number, y: number): number {
+        const T = this.thermalMass.temperatures;
+        const k = this.thermalMass.cells[x][y].thermalConductivity;
+        const dx = this.thermalMass.cellSize;
+        
+        // 2D heat conduction equation (finite difference)
+        const d2Tdx2 = (T[x + 1][y] - 2 * T[x][y] + T[x - 1][y]) / (dx * dx);
+        const d2Tdy2 = (T[x][y + 1] - 2 * T[x][y] + T[x][y - 1]) / (dx * dx);
+        
+        return k * (d2Tdx2 + d2Tdy2);
+      }
+      
+      private calculateHeatGeneration(x: number, y: number): number {
+        let totalGeneration = 0;
+        
+        this.heatSources.forEach(source => {
+          const distance = Math.sqrt(
+            Math.pow(source.x - x * this.thermalMass.cellSize, 2) +
+            Math.pow(source.y - y * this.thermalMass.cellSize, 2)
+          );
+          
+          if (distance < source.radius) {
+            // Heat source affects this cell
+            const influence = this.calculateHeatInfluence(distance, source.radius);
+            totalGeneration += source.power * influence;
+          }
+        });
+        
+        return totalGeneration;
+      }
+      
+      // Predictive thermal modeling
+      predictTemperature(hours: number): TemperatureField {
+        const timestep = 60; // 1 minute steps
+        const steps = hours * 60;
+        
+        let currentField = this.getTemperatureField();
+        
+        for (let step = 0; step < steps; step++) {
+          // Simulate workload changes
+          this.updateWorkloadPrediction(step * timestep);
+          
+          // Run thermal simulation
+          currentField = this.simulateHeatTransfer(timestep);
+          
+          // Update boundary conditions
+          this.updateBoundaryConditions(step * timestep);
+        }
+        
+        return currentField;
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Visualization Techniques
+
+### Heat Map Rendering
+
+<AccordionGroup>
+  <Accordion title="GPU-Accelerated Rendering">
+    **WebGL shaders for smooth thermal visualization**
+    
+    ```glsl
+    // Vertex shader for thermal grid
+    attribute vec2 position;
+    attribute float temperature;
+    
+    uniform mat4 projectionMatrix;
+    uniform mat4 modelViewMatrix;
+    uniform vec2 temperatureRange;
+    
+    varying float vTemperature;
+    varying vec2 vUv;
+    
+    void main() {
+        vTemperature = (temperature - temperatureRange.x) / 
+                      (temperatureRange.y - temperatureRange.x);
+        vUv = position;
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 0.0, 1.0);
+    }
+    ```
+    
+    ```glsl
+    // Fragment shader for thermal colors
+    precision mediump float;
+    
+    varying float vTemperature;
+    varying vec2 vUv;
+    
+    uniform sampler2D colorMap;
+    uniform float opacity;
+    uniform bool showContours;
+    uniform float contourSpacing;
+    
+    vec3 getTemperatureColor(float temp) {
+        // Use texture lookup for color mapping
+        return texture2D(colorMap, vec2(temp, 0.5)).rgb;
+    }
+    
+    void main() {
+        vec3 color = getTemperatureColor(vTemperature);
+        float alpha = opacity;
+        
+        // Add contour lines
+        if (showContours) {
+            float contour = fract(vTemperature / contourSpacing);
+            if (contour < 0.05 || contour > 0.95) {
+                color = mix(color, vec3(0.0), 0.5);
+                alpha = min(alpha + 0.3, 1.0);
+            }
+        }
+        
+        gl_FragColor = vec4(color, alpha);
+    }
+    ```
+    
+    **Performance Benefits**:
+    - Real-time rendering of large grids
+    - Smooth interpolation between data points
+    - Dynamic color mapping
+    - Efficient contour line generation
+  </Accordion>
+  
+  <Accordion title="Multi-Resolution Display">
+    **Adaptive detail based on zoom level**
+    
+    ```typescript
+    // Level-of-detail thermal rendering
+    class LODThermalRenderer {
+      private lodLevels = [
+        { zoomLevel: 0, resolution: 25, interpolation: 'nearest' },
+        { zoomLevel: 2, resolution: 50, interpolation: 'linear' },
+        { zoomLevel: 5, resolution: 100, interpolation: 'cubic' },
+        { zoomLevel: 8, resolution: 200, interpolation: 'kriging' }
+      ];
+      
+      getCurrentLOD(zoomLevel: number): LODLevel {
+        return this.lodLevels.reduce((best, current) => 
+          zoomLevel >= current.zoomLevel ? current : best
+        );
+      }
+      
+      renderThermalLayer(zoomLevel: number): void {
+        const lod = this.getCurrentLOD(zoomLevel);
+        
+        // Generate appropriate resolution grid
+        const grid = this.generateThermalGrid(lod.resolution);
+        
+        // Apply interpolation method
+        const smoothGrid = this.applyInterpolation(grid, lod.interpolation);
+        
+        // Render with appropriate shader
+        this.renderGrid(smoothGrid, lod);
+      }
+      
+      private applyInterpolation(grid: number[][], method: string): number[][] {
+        switch (method) {
+          case 'nearest':
+            return grid; // No smoothing
+          
+          case 'linear':
+            return this.bilinearInterpolation(grid);
+          
+          case 'cubic':
+            return this.bicubicInterpolation(grid);
+          
+          case 'kriging':
+            return this.krigingInterpolation(grid);
+          
+          default:
+            return grid;
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Color Space Optimization">
+    **Perceptually uniform color mapping**
+    
+    ```typescript
+    // Advanced color mapping for thermal data
+    class ThermalColorMapper {
+      private colorSpaces = {
+        viridis: this.createViridisScale(),
+        plasma: this.createPlasmaScale(),
+        inferno: this.createInfernoScale(),
+        custom: this.createCustomScale()
+      };
+      
+      private createViridisScale(): d3.ScaleSequential<string> {
+        return d3.scaleSequential(d3.interpolateViridis);
+      }
+      
+      private createCustomScale(): d3.ScaleSequential<string> {
+        // Custom scale optimized for data center temperatures
+        const colors = [
+          '#000080', // Cold (dark blue)
+          '#0000FF', // Cool (blue)
+          '#00FFFF', // Normal (cyan)
+          '#00FF00', // Slightly warm (green)
+          '#FFFF00', // Warm (yellow)
+          '#FF8000', // Hot (orange)
+          '#FF0000', // Very hot (red)
+          '#800080'  // Critical (purple)
+        ];
+        
+        return d3.scaleSequential(d3.interpolateRgb.gamma(2.2)(...colors));
+      }
+      
+      // Accessibility-friendly color schemes
+      createColorBlindFriendlyScale(type: 'deuteranopia' | 'protanopia' | 'tritanopia'): d3.ScaleSequential<string> {
+        const palettes = {
+          deuteranopia: ['#000080', '#FFFF00', '#FF0000'],
+          protanopia: ['#000080', '#00FFFF', '#FFFF00'],
+          tritanopia: ['#FF0000', '#00FF00', '#0000FF']
+        };
+        
+        const colors = palettes[type];
+        return d3.scaleSequential(d3.interpolateRgb(...colors));
+      }
+      
+      // Perceptual lightness adjustment
+      adjustForLightness(color: string, targetLightness: number): string {
+        const lab = d3.lab(color);
+        lab.l = targetLightness;
+        return lab.toString();
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+<Note>
+**Advanced Topics**: Explore [customization options](/visualization/customization) for creating specialized thermal views, or learn about [data integration](/data/sensor-system) for enhanced modeling accuracy.
+</Note> 

@@ -1,0 +1,739 @@
+---
+title: "Grafana Dashboards"
+description: "Comprehensive Grafana dashboards for sensor data visualization, alerting, and operational monitoring with real-time insights."
+icon: "chart-mixed"
+---
+
+# Grafana Dashboards
+
+Blink integrates with **Grafana** to provide powerful, customizable dashboards for monitoring sensor data, analyzing trends, and managing alerts across your data center infrastructure.
+
+## Dashboard Overview
+
+<CardGroup cols={2}>
+  <Card title="Real-time Monitoring" icon="gauge">
+    **Live sensor data visualization**
+    - Current temperature readings
+    - Zone-based heat maps
+    - Threshold indicators
+    - System health status
+  </Card>
+  
+  <Card title="📈 Historical Analysis" icon="chart-line">
+    **Trend analysis and reporting**
+    - Time-series charts
+    - Temperature patterns
+    - Performance metrics
+    - Comparative analysis
+  </Card>
+  
+  <Card title="🚨 Alert Management" icon="triangle-exclamation">
+    **Comprehensive alerting system**
+    - Threshold-based alerts
+    - Anomaly detection
+    - Escalation rules
+    - Notification channels
+  </Card>
+  
+  <Card title="Custom Dashboards" icon="sliders">
+    **Tailored monitoring views**
+    - Role-based dashboards
+    - Custom panels
+    - Variable templates
+    - Export capabilities
+  </Card>
+</CardGroup>
+
+## Pre-built Dashboards
+
+### Operations Dashboard
+
+<Info>
+**Access**: [http://localhost:3000/d/operations](http://localhost:3000/d/operations)
+
+The main operations dashboard provides a comprehensive overview of data center thermal status.
+</Info>
+
+**Key Panels**:
+- **Temperature Overview**: Current readings from all 203 sensors
+- **Zone Status**: Heat map of cold/hot aisles
+- **Alert Summary**: Active warnings and critical alerts
+- **System Health**: Sensor uptime and communication status
+
+### Data Center Heat Map
+
+<Tabs>
+  <Tab title="Real-time Heat Map">
+    **Live temperature visualization**
+    
+    ```sql
+    -- Grafana query for heat map panel
+    SELECT
+      $__time(time),
+      sensor_id,
+      zone_id,
+      temperature,
+      position_x as "x",
+      position_y as "y"
+    FROM sensor_readings
+    WHERE $__timeFilter(time)
+    AND temperature IS NOT NULL
+    ORDER BY time DESC
+    ```
+    
+    **Panel Configuration**:
+    ```json
+    {
+      "type": "heatmap",
+      "title": "Data Center Temperature Heat Map",
+      "datasource": "InfluxDB",
+      "targets": [
+        {
+          "query": "from(bucket: \"sensors\") |> range(start: $__timeFrom, stop: $__timeTo) |> filter(fn: (r) => r._measurement == \"sensor_readings\") |> filter(fn: (r) => r._field == \"temperature\")",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "scheme": "Turbo"
+          },
+          "min": 15,
+          "max": 40
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Zone Comparison">
+    **Comparative zone analysis**
+    
+    ```sql
+    -- Zone temperature comparison
+    SELECT
+      $__timeGroup(time,'5m'),
+      zone_id,
+      avg(temperature) as avg_temp,
+      max(temperature) as max_temp,
+      min(temperature) as min_temp
+    FROM sensor_readings
+    WHERE $__timeFilter(time)
+    GROUP BY zone_id, $__timeGroup(time,'5m')
+    ORDER BY time
+    ```
+    
+    **Features**:
+    - Multi-series line chart
+    - Zone-based color coding
+    - Statistical aggregations
+    - Threshold indicators
+  </Tab>
+  
+  <Tab title="Historical Trends">
+    **Long-term pattern analysis**
+    
+    ```sql
+    -- Daily temperature trends
+    SELECT
+      $__timeGroup(time,'1h'),
+      zone_id,
+      avg(temperature) as hourly_avg
+    FROM sensor_readings
+    WHERE $__timeFilter(time)
+    AND time >= now() - interval '7 days'
+    GROUP BY zone_id, $__timeGroup(time,'1h')
+    ORDER BY time
+    ```
+    
+    **Analysis Features**:
+    - Week-over-week comparison
+    - Seasonal trend detection
+    - Pattern recognition
+    - Predictive modeling
+  </Tab>
+</Tabs>
+
+## Custom Dashboard Templates
+
+### Executive Summary Dashboard
+
+<AccordionGroup>
+  <Accordion title="High-Level KPIs">
+    **Executive-focused metrics**
+    
+    ```json
+    {
+      "dashboard": {
+        "title": "Executive Summary - Data Center Thermal Management",
+        "panels": [
+          {
+            "title": "Overall System Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg(sensor_uptime_percent)",
+                "format": "percent"
+              }
+            ],
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            }
+          },
+          {
+            "title": "Average Data Center Temperature",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "avg(temperature_celsius)",
+                "format": "celsius"
+              }
+            ],
+            "min": 15,
+            "max": 35
+          },
+          {
+            "title": "Active Alerts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(alert_count_by_severity)",
+                "format": "short"
+              }
+            ]
+          }
+        ]
+      }
+    }
+    ```
+    
+    **Metrics Included**:
+    - System uptime percentage
+    - Average temperature
+    - Alert counts by severity
+    - Cooling efficiency
+    - Energy consumption
+  </Accordion>
+  
+  <Accordion title="Trend Analysis">
+    **Strategic insights dashboard**
+    
+    ```json
+    {
+      "panels": [
+        {
+          "title": "30-Day Temperature Trend",
+          "type": "timeseries",
+          "targets": [
+            {
+              "query": "SELECT time, avg(temperature) FROM sensor_readings WHERE time >= now() - 30d GROUP BY time(1d)"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "trendline",
+              "options": {
+                "type": "linear"
+              }
+            }
+          ]
+        },
+        {
+          "title": "Cooling Efficiency Trend",
+          "type": "barchart",
+          "targets": [
+            {
+              "query": "SELECT time, (avg(hot_aisle_temp) - avg(cold_aisle_temp)) as delta_t FROM sensor_readings WHERE time >= now() - 7d GROUP BY time(1h)"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Cost Analysis">
+    **Financial impact metrics**
+    
+    ```json
+    {
+      "panels": [
+        {
+          "title": "Energy Cost Impact",
+          "type": "table",
+          "targets": [
+            {
+              "query": "SELECT zone_id, avg(temperature), estimated_cooling_cost FROM cost_analysis WHERE time >= now() - 24h GROUP BY zone_id"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "zone_id": 0,
+                  "avg_temperature": 1,
+                  "estimated_cost": 2
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Technical Operations Dashboard
+
+<CodeGroup>
+
+```json Sensor Health Panel
+{
+  "title": "Sensor Health Monitoring",
+  "type": "table",
+  "datasource": "InfluxDB",
+  "targets": [
+    {
+      "query": "from(bucket: \"sensors\") |> range(start: -1h) |> filter(fn: (r) => r._measurement == \"sensor_status\") |> group(columns: [\"sensor_id\"]) |> last()",
+      "refId": "A"
+    }
+  ],
+  "transformations": [
+    {
+      "id": "organize",
+      "options": {
+        "excludeByName": {
+          "_start": true,
+          "_stop": true
+        },
+        "indexByName": {
+          "sensor_id": 0,
+          "battery_level": 1,
+          "signal_strength": 2,
+          "last_reading": 3,
+          "status": 4
+        }
+      }
+    }
+  ],
+  "fieldConfig": {
+    "overrides": [
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "battery_level"
+        },
+        "properties": [
+          {
+            "id": "thresholds",
+            "value": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 20},
+                {"color": "green", "value": 50}
+              ]
+            }
+          },
+          {
+            "id": "custom.cellOptions",
+            "value": {
+              "type": "gauge"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+```json Alert Timeline Panel
+{
+  "title": "Alert Timeline",
+  "type": "timeseries",
+  "datasource": "InfluxDB",
+  "targets": [
+    {
+      "query": "from(bucket: \"alerts\") |> range(start: $__timeFrom, stop: $__timeTo) |> filter(fn: (r) => r._measurement == \"system_alerts\") |> aggregateWindow(every: 5m, fn: count)",
+      "refId": "A"
+    }
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "color": {
+        "mode": "palette-classic"
+      },
+      "custom": {
+        "drawStyle": "line",
+        "lineInterpolation": "stepAfter",
+        "barAlignment": 0,
+        "lineWidth": 2,
+        "fillOpacity": 20,
+        "gradientMode": "none",
+        "spanNulls": false,
+        "insertNulls": false,
+        "showPoints": "auto",
+        "pointSize": 5
+      }
+    },
+    "overrides": [
+      {
+        "matcher": {
+          "id": "byName",
+          "options": "critical"
+        },
+        "properties": [
+          {
+            "id": "color",
+            "value": {
+              "mode": "fixed",
+              "fixedColor": "red"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+```json Performance Metrics Panel
+{
+  "title": "System Performance",
+  "type": "stat",
+  "datasource": "Prometheus",
+  "targets": [
+    {
+      "expr": "rate(sensor_readings_total[5m])",
+      "refId": "A",
+      "legendFormat": "Readings/sec"
+    },
+    {
+      "expr": "histogram_quantile(0.95, rate(data_processing_duration_seconds_bucket[5m]))",
+      "refId": "B",
+      "legendFormat": "95th percentile latency"
+    },
+    {
+      "expr": "kafka_consumer_lag_max",
+      "refId": "C",
+      "legendFormat": "Kafka lag"
+    }
+  ],
+  "fieldConfig": {
+    "defaults": {
+      "color": {
+        "mode": "thresholds"
+      },
+      "mappings": [],
+      "thresholds": {
+        "steps": [
+          {"color": "green", "value": null},
+          {"color": "red", "value": 80}
+        ]
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## Alert Configuration
+
+### Threshold-Based Alerts
+
+<Tabs>
+  <Tab title="Temperature Alerts">
+    **Critical temperature monitoring**
+    
+    ```yaml
+    # Grafana alert rules
+    groups:
+      - name: temperature_alerts
+        rules:
+          - alert: HighTemperature
+            expr: temperature_celsius > 35
+            for: 2m
+            labels:
+              severity: critical
+              zone: "{{ $labels.zone_id }}"
+            annotations:
+              summary: "High temperature detected in {{ $labels.zone_id }}"
+              description: "Temperature of {{ $value }}°C exceeds critical threshold"
+              
+          - alert: ColdAisleTemperatureHigh
+            expr: temperature_celsius{zone_type="cold_aisle"} > 22
+            for: 5m
+            labels:
+              severity: warning
+              zone: "{{ $labels.zone_id }}"
+            annotations:
+              summary: "Cold aisle temperature elevated"
+              description: "Cold aisle temperature of {{ $value }}°C is above optimal range"
+              
+          - alert: SensorOffline
+            expr: up{job="sensor_network"} == 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Sensor offline: {{ $labels.sensor_id }}"
+              description: "Sensor {{ $labels.sensor_id }} has not reported data for over 1 minute"
+    ```
+  </Tab>
+  
+  <Tab title="System Health Alerts">
+    **Infrastructure monitoring**
+    
+    ```yaml
+    groups:
+      - name: system_health
+        rules:
+          - alert: LowBatteryLevel
+            expr: sensor_battery_level < 20
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low battery on sensor {{ $labels.sensor_id }}"
+              description: "Battery level is {{ $value }}%, replacement needed soon"
+              
+          - alert: PoorSignalStrength
+            expr: sensor_signal_strength < -80
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Poor signal strength for sensor {{ $labels.sensor_id }}"
+              description: "Signal strength is {{ $value }} dBm, check network connectivity"
+              
+          - alert: DataQualityDegraded
+            expr: rate(invalid_readings_total[5m]) > 0.05
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Data quality issues detected"
+              description: "{{ $value }} invalid readings per second detected"
+    ```
+  </Tab>
+  
+  <Tab title="Notification Channels">
+    **Multi-channel alerting**
+    
+    ```yaml
+    # Notification channel configuration
+    notification_policies:
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 1h
+        
+      - match:
+          severity: warning
+        receiver: 'warning-alerts'
+        group_wait: 1m
+        group_interval: 10m
+        repeat_interval: 4h
+        
+    receivers:
+      - name: 'critical-alerts'
+        email_configs:
+          - to: 'ops-team@company.com'
+            subject: 'CRITICAL: Data Center Alert'
+            body: |
+              Alert: {{ .GroupLabels.alertname }}
+              Severity: {{ .CommonLabels.severity }}
+              Description: {{ .CommonAnnotations.description }}
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/...'
+            channel: '#datacenter-alerts'
+            title: 'Critical Data Center Alert'
+        pagerduty_configs:
+          - routing_key: 'your-integration-key'
+            description: '{{ .CommonAnnotations.summary }}'
+            
+      - name: 'warning-alerts'
+        email_configs:
+          - to: 'monitoring@company.com'
+            subject: 'WARNING: Data Center Alert'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/...'
+            channel: '#datacenter-warnings'
+    ```
+  </Tab>
+</Tabs>
+
+## Dashboard Variables
+
+### Dynamic Filtering
+
+<AccordionGroup>
+  <Accordion title="Zone Selection">
+    **Filter by data center zones**
+    
+    ```json
+    {
+      "name": "zone",
+      "type": "query",
+      "datasource": "InfluxDB",
+      "query": "SHOW TAG VALUES FROM \"sensor_readings\" WITH KEY = \"zone_id\"",
+      "refresh": 1,
+      "includeAll": true,
+      "allValue": ".*",
+      "multi": true,
+      "options": [],
+      "current": {
+        "selected": true,
+        "text": "All",
+        "value": "$__all"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Time Range Templates">
+    **Predefined time periods**
+    
+    ```json
+    {
+      "name": "timerange",
+      "type": "custom",
+      "options": [
+        {
+          "text": "Last 15 minutes",
+          "value": "now-15m",
+          "selected": false
+        },
+        {
+          "text": "Last 1 hour",
+          "value": "now-1h",
+          "selected": true
+        },
+        {
+          "text": "Last 24 hours",
+          "value": "now-24h",
+          "selected": false
+        },
+        {
+          "text": "Last 7 days",
+          "value": "now-7d",
+          "selected": false
+        }
+      ]
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Sensor Groups">
+    **Group-based filtering**
+    
+    ```json
+    {
+      "name": "sensor_group",
+      "type": "query",
+      "datasource": "InfluxDB",
+      "query": "SELECT DISTINCT sensor_group FROM sensor_metadata",
+      "refresh": 2,
+      "includeAll": true,
+      "multi": true,
+      "options": [
+        {"text": "Cold Aisle Sensors", "value": "cold_aisle"},
+        {"text": "Hot Aisle Sensors", "value": "hot_aisle"},
+        {"text": "Equipment Sensors", "value": "equipment"},
+        {"text": "Ambient Sensors", "value": "ambient"}
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Dashboard Export & Import
+
+### Export Configuration
+
+```bash
+# Export dashboard JSON
+curl -H "Authorization: Bearer $GRAFANA_API_KEY" \
+     "http://localhost:3000/api/dashboards/db/sensor-monitoring" \
+     | jq .dashboard > sensor-monitoring.json
+
+# Export with variables and panels
+grafana-cli admin export-dashboard \
+  --dashboard-uid="sensor-monitoring" \
+  --output="./dashboards/"
+```
+
+### Import Templates
+
+```bash
+# Import dashboard from file
+curl -X POST \
+  -H "Authorization: Bearer $GRAFANA_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @sensor-monitoring.json \
+  "http://localhost:3000/api/dashboards/db"
+
+# Bulk import dashboards
+for dashboard in ./dashboards/*.json; do
+  curl -X POST \
+    -H "Authorization: Bearer $GRAFANA_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d @"$dashboard" \
+    "http://localhost:3000/api/dashboards/db"
+done
+```
+
+## Performance Optimization
+
+### Query Optimization
+
+<Info>
+**Dashboard Performance**:
+- **Load Time**: < 2 seconds for real-time dashboards
+- **Refresh Rate**: 5-second intervals for live data
+- **Data Points**: Optimized for 1000+ sensors
+- **Concurrent Users**: Supports 50+ simultaneous viewers
+</Info>
+
+```sql
+-- Optimized queries for large datasets
+-- Use appropriate time ranges and aggregation
+SELECT 
+  time_bucket('5m', time) as bucket,
+  zone_id,
+  avg(temperature) as avg_temp,
+  count(*) as reading_count
+FROM sensor_readings
+WHERE time >= NOW() - INTERVAL '24 hours'
+  AND zone_id = $zone_variable
+GROUP BY bucket, zone_id
+ORDER BY bucket DESC;
+
+-- Use materialized views for complex aggregations
+CREATE MATERIALIZED VIEW hourly_zone_stats AS
+SELECT 
+  time_bucket('1h', time) as hour,
+  zone_id,
+  avg(temperature) as avg_temp,
+  max(temperature) as max_temp,
+  min(temperature) as min_temp,
+  stddev(temperature) as temp_stddev
+FROM sensor_readings
+GROUP BY hour, zone_id;
+```
+
+---
+
+<Note>
+**Integration**: Access live dashboards at [http://localhost:3000](http://localhost:3000) or learn about [sensor data](/data/sensor-system) for configuration details.
+</Note> 
