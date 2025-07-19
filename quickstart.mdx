@@ -17,7 +17,7 @@ Get your Blink data center monitoring system up and running in under 10 minutes.
 Choose the installation method that best fits your environment:
 
 <Tabs>
-  <Tab title="🐳 Docker Compose (Recommended)">
+  <Tab title="Docker Compose (Recommended)">
     **Best for**: Quick setup, production-like environment, isolated services
     
     ```bash
@@ -37,7 +37,7 @@ Choose the installation method that best fits your environment:
     </Check>
   </Tab>
   
-  <Tab title="⚡ Development Mode">
+  <Tab title="Development Mode">
     **Best for**: Active development, debugging, customization
     
     ```bash
@@ -59,7 +59,7 @@ Choose the installation method that best fits your environment:
     </Tip>
   </Tab>
   
-  <Tab title="🔧 Manual Setup">
+  <Tab title="Manual Setup">
     **Best for**: Understanding the system, custom configurations
     
     ```bash
@@ -156,13 +156,13 @@ Choose the installation method that best fits your environment:
     <AccordionGroup>
       <Accordion title="Expected Health Check Results">
         ```bash
-        ✅ Redis: Connected and responding
-        ✅ Kafka: All brokers healthy, topics created
-        ✅ InfluxDB: Database connected, bucket accessible  
-        ✅ API Server: Health endpoint responding (http://localhost:3001/health)
-        ✅ WebSocket: Connection established and broadcasting
-        ✅ Simulator: Generating sensor data every 2 seconds
-        ✅ Visualization: 3D interface loaded and updating
+        [OK] Redis: Connected and responding
+        [OK] Kafka: All brokers healthy, topics created
+        [OK] InfluxDB: Database connected, bucket accessible  
+        [OK] API Server: Health endpoint responding (http://localhost:3001/health)
+        [OK] WebSocket: Connection established and broadcasting
+        [OK] Simulator: Generating sensor data every 2 seconds
+        [OK] Visualization: 3D interface loaded and updating
         ```
       </Accordion>
       
@@ -201,7 +201,7 @@ Choose the installation method that best fits your environment:
     
     <CardGroup cols={2}>
       <Card
-        title="🎯 3D Visualization"
+        title="3D Visualization"
         icon="cube"
         href="http://localhost:3002"
       >
@@ -214,7 +214,7 @@ Choose the installation method that best fits your environment:
       </Card>
       
       <Card
-        title="🔧 API Server"
+        title="API Server"
         icon="server"
         href="http://localhost:3001"
       >
@@ -227,7 +227,7 @@ Choose the installation method that best fits your environment:
       </Card>
       
       <Card
-        title="📊 Grafana Dashboards"
+        title="Grafana Dashboards"
         icon="chart-line"
         href="http://localhost:3000"
       >
@@ -240,7 +240,7 @@ Choose the installation method that best fits your environment:
       </Card>
       
       <Card
-        title="💾 System Monitoring"
+        title="System Monitoring"
         icon="database"
         href="http://localhost:8080"
       >
@@ -388,7 +388,7 @@ node tests/websocket-load-test.js
 
 <CardGroup cols={3}>
   <Card
-    title="🏗️ Explore Architecture"
+    title="Explore Architecture"
     icon="cubes-stacked"
     href="/architecture/overview"
   >
@@ -404,7 +404,7 @@ node tests/websocket-load-test.js
   </Card>
   
   <Card
-    title="🔧 API Documentation"
+    title="API Documentation"
     icon="code"
     href="/api-reference/introduction"
   >
@@ -415,7 +415,7 @@ node tests/websocket-load-test.js
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="🚨 Services Won't Start" icon="triangle-exclamation">
+  <Accordion title="Services Won't Start" icon="triangle-exclamation">
     **Common causes and solutions:**
     
     ```bash
@@ -436,7 +436,7 @@ node tests/websocket-load-test.js
     **Docker issues**: Restart Docker daemon or increase memory allocation
   </Accordion>
   
-  <Accordion title="🔗 No Real-time Data" icon="wifi">
+  <Accordion title="No Real-time Data" icon="wifi">
     **WebSocket connection issues:**
     
     ```bash
@@ -455,7 +455,7 @@ node tests/websocket-load-test.js
     **Browser cache**: Hard refresh (Ctrl+Shift+R) the visualization page
   </Accordion>
   
-  <Accordion title="📊 Grafana Access Issues" icon="chart-line">
+  <Accordion title="Grafana Access Issues" icon="chart-line">
     **Dashboard authentication problems:**
     
     ```bash

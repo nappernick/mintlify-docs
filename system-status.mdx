@@ -16,11 +16,11 @@ Real-time monitoring of all Blink system components, performance metrics, and se
 
 <CardGroup cols={2}>
   <Card
-    title="🎯 Core Services"
+    title="Core Services"
     icon="server"
     color="#10B981"
   >
-    **Status: Operational** ✅
+    **Status: Operational**
     
     - API Server: Running (3.2ms avg response)
     - WebSocket Server: Broadcasting (203 active connections)
@@ -29,11 +29,11 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="💾 Data Infrastructure"
+    title="Data Infrastructure"
     icon="database"
     color="#3B82F6"
   >
-    **Status: Healthy** ✅
+    **Status: Healthy**
     
     - InfluxDB: Connected (15.2GB stored)
     - Redis: Active (99.8% hit rate)
@@ -42,11 +42,11 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="🌡️ Sensor Network"
+    title="Sensor Network"
     icon="thermometer"
     color="#8B5CF6"
   >
-    **Status: Monitoring** ✅
+    **Status: Monitoring**
     
     - Active Sensors: 203/203 (100%)
     - Update Frequency: 2.1 seconds avg
@@ -55,11 +55,11 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="📊 Performance Metrics"
+    title="Performance Metrics"
     icon="chart-line"
     color="#F59E0B"
   >
-    **Status: Optimal** ✅
+    **Status: Optimal**
     
     - CPU Usage: 12.3% average
     - Memory Usage: 1.8GB / 8GB
@@ -71,7 +71,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
 ## Service Status
 
 <Tabs>
-  <Tab title="🔧 Application Services">
+  <Tab title="Application Services">
     | Service | Status | Uptime | Response Time | Last Check |
     |---------|--------|--------|---------------|------------|
     | **API Server** | 🟢 Healthy | 15d 6h 23m | 3.2ms | 30s ago |
@@ -84,7 +84,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
     </Check>
   </Tab>
   
-  <Tab title="💾 Infrastructure">
+  <Tab title="Infrastructure">
     | Component | Status | Uptime | Connections | Resource Usage |
     |-----------|--------|--------|-------------|----------------|
     | **InfluxDB** | 🟢 Healthy | 15d 6h 24m | 3 active | CPU: 8.2%, RAM: 512MB |
@@ -136,16 +136,16 @@ Real-time monitoring of all Blink system components, performance metrics, and se
     </Tip>
   </Accordion>
   
-  <Accordion title="🌡️ Sensor Data Quality" icon="thermometer">
+  <Accordion title="Sensor Data Quality" icon="thermometer">
     **Data Quality Metrics (Last 24 Hours)**
     
     | Metric | Value | Threshold | Status |
     |--------|-------|-----------|--------|
-    | **Valid Readings** | 99.97% | > 99.5% | ✅ Excellent |
-    | **Missing Data Points** | 0.03% | < 0.5% | ✅ Excellent |
-    | **Out-of-Range Values** | 0.01% | < 0.1% | ✅ Excellent |
-    | **Sensor Failures** | 0 | < 1 | ✅ Perfect |
-    | **Network Timeouts** | 2 | < 10 | ✅ Excellent |
+    | **Valid Readings** | 99.97% | > 99.5% | Excellent |
+| **Missing Data Points** | 0.03% | < 0.5% | Excellent |
+| **Out-of-Range Values** | 0.01% | < 0.1% | Excellent |
+| **Sensor Failures** | 0 | < 1 | Perfect |
+| **Network Timeouts** | 2 | < 10 | Excellent |
     
     **Temperature Distribution:**
     - Cold Zones: 18.2°C - 25.8°C (142 sensors)
@@ -153,7 +153,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
     - Anomalies Detected: 0 in last 24 hours
   </Accordion>
   
-  <Accordion title="⚡ Data Pipeline Throughput" icon="bolt">
+  <Accordion title="Data Pipeline Throughput" icon="bolt">
     **Message Processing Statistics**
     
     ```yaml
@@ -182,19 +182,19 @@ Real-time monitoring of all Blink system components, performance metrics, and se
     ```
   </Accordion>
   
-  <Accordion title="🔍 Health Check Details" icon="stethoscope">
+  <Accordion title="Health Check Details" icon="stethoscope">
     **Automated Health Monitoring**
     
     <CodeGroup>
     
     ```bash Recent Health Checks
-    [2024-01-15 10:30:15] ✅ API Server health check passed (3.2ms)
-    [2024-01-15 10:30:15] ✅ InfluxDB connection verified (8.1ms)
-    [2024-01-15 10:30:15] ✅ Redis ping successful (0.8ms)
-    [2024-01-15 10:30:15] ✅ Kafka broker health confirmed (12.3ms)
-    [2024-01-15 10:30:15] ✅ WebSocket server broadcasting (1.8ms)
-    [2024-01-15 10:30:00] ✅ Sensor data pipeline flowing (2.1ms)
-    [2024-01-15 10:29:45] ✅ 3D visualization rendering (60fps)
+          [2024-01-15 10:30:15] [OK] API Server health check passed (3.2ms)
+      [2024-01-15 10:30:15] [OK] InfluxDB connection verified (8.1ms)
+      [2024-01-15 10:30:15] [OK] Redis ping successful (0.8ms)
+      [2024-01-15 10:30:15] [OK] Kafka broker health confirmed (12.3ms)
+      [2024-01-15 10:30:15] [OK] WebSocket server broadcasting (1.8ms)
+      [2024-01-15 10:30:00] [OK] Sensor data pipeline flowing (2.1ms)
+      [2024-01-15 10:29:45] [OK] 3D visualization rendering (60fps)
     ```
     
     ```yaml Health Check Configuration
@@ -266,16 +266,16 @@ Real-time monitoring of all Blink system components, performance metrics, and se
     </Info>
   </Tab>
   
-  <Tab title="🎯 SLA Performance">
+  <Tab title="SLA Performance">
     **Service Level Agreement Compliance**
     
     | SLA Target | Current Performance | Status |
     |------------|-------------------|--------|
-    | **99.9% Uptime** | 99.94% (30-day) | ✅ Exceeding |
-    | **< 100ms API Response** | 3.2ms average | ✅ Excellent |
-    | **< 5s Data Freshness** | 2.1s average | ✅ Excellent |
-    | **99.5% Data Quality** | 99.97% valid | ✅ Exceeding |
-    | **< 10s Incident Detection** | 2.3s average | ✅ Excellent |
+    | **99.9% Uptime** | 99.94% (30-day) | Exceeding |
+| **< 100ms API Response** | 3.2ms average | Excellent |
+| **< 5s Data Freshness** | 2.1s average | Excellent |
+| **99.5% Data Quality** | 99.97% valid | Exceeding |
+| **< 10s Incident Detection** | 2.3s average | Excellent |
   </Tab>
 </Tabs>
 
@@ -283,7 +283,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
 
 <CardGroup cols={3}>
   <Card
-    title="🎯 View Live Demo"
+    title="View Live Demo"
     icon="play"
     href="http://localhost:3002"
   >
@@ -291,7 +291,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="📊 Grafana Dashboards"
+    title="Grafana Dashboards"
     icon="chart-line"
     href="http://localhost:3000"
   >
@@ -299,7 +299,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="🔧 API Health Check"
+    title="API Health Check"
     icon="stethoscope"
     href="http://localhost:3001/health"
   >
@@ -307,7 +307,7 @@ Real-time monitoring of all Blink system components, performance metrics, and se
   </Card>
   
   <Card
-    title="💾 Kafka Monitoring"
+    title="Kafka Monitoring"
     icon="stream"
     href="http://localhost:8080"
   >

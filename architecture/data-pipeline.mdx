@@ -182,16 +182,16 @@ websocket_connection_count:
 #!/bin/bash
 # Complete pipeline health validation
 
-echo "🔍 Checking Kafka health..."
+        echo "Checking Kafka health..."
 kafka-broker-api-versions --bootstrap-server localhost:9092
 
-echo "📊 Checking InfluxDB..."
+        echo "Checking InfluxDB..."
 curl -f http://localhost:8086/health
 
-echo "🔗 Checking WebSocket server..."
+        echo "Checking WebSocket server..."
 curl -f http://localhost:3001/health
 
-echo "⚡ Checking stream processor..."
+        echo "Checking stream processor..."
 curl -f http://flink-jobmanager:8081/jobs
 ```
 
